@@ -1,0 +1,97 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.example.smartfarm"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="23"
+8-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml
+9        android:targetSdkVersion="30" />
+9-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml
+10
+11    <uses-permission android:name="android.permission.INTERNET" />
+11-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:5:5-67
+11-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:5:22-64
+12    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+12-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:6:5-79
+12-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:6:22-76
+13    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+13-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:7:5-76
+13-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:7:22-73
+14    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+14-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:8:5-80
+14-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:8:22-77
+15    <uses-permission android:name="android.permission.CAMERA" />
+15-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:9:5-65
+15-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:9:22-62
+16
+17    <application
+17-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:11:5-45:19
+18        android:allowBackup="true"
+18-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:12:9-35
+19        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+19-->[androidx.core:core:1.5.0] D:\software\gradle_cache\caches\transforms-2\files-2.1\cc5e9dcdc56dc39042f72c501235e83f\core-1.5.0\AndroidManifest.xml:24:18-86
+20        android:debuggable="true"
+21        android:extractNativeLibs="false"
+22        android:icon="@mipmap/ic_launcher"
+22-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:13:9-43
+23        android:label="@string/app_name"
+23-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:14:9-41
+24        android:roundIcon="@mipmap/ic_launcher_round"
+24-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:15:9-54
+25        android:supportsRtl="true"
+25-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:16:9-35
+26        android:theme="@style/AppTheme"
+26-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:18:9-40
+27        android:usesCleartextTraffic="true" >
+27-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:17:9-44
+28        <activity
+28-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:19:9-26:20
+29            android:name="com.example.smartfarm.MainActivity"
+29-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:20:13-41
+30            android:screenOrientation="portrait" >
+30-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:21:13-49
+31            <intent-filter>
+31-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:22:13-25:29
+32                <action android:name="android.intent.action.MAIN" />
+32-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:23:17-69
+32-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:23:25-66
+33
+34                <category android:name="android.intent.category.LAUNCHER" />
+34-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:24:17-77
+34-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:24:27-74
+35            </intent-filter>
+36        </activity>
+37        <activity
+37-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:28:9-30:52
+38            android:name="com.example.smartfarm.DiseaseActivity"
+38-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:29:13-44
+39            android:screenOrientation="portrait" />
+39-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:30:13-49
+40        <activity
+40-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:32:9-34:52
+41            android:name="com.example.smartfarm.MoreActivity"
+41-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:33:13-41
+42            android:screenOrientation="portrait" />
+42-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:34:13-49
+43
+44        <provider
+45            android:name="androidx.core.content.FileProvider"
+45-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:37:13-62
+46            android:authorities="com.example.smartfarm.fileprovider"
+46-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:38:13-64
+47            android:exported="false"
+47-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:39:13-37
+48            android:grantUriPermissions="true" >
+48-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:40:13-47
+49            <meta-data
+49-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:41:13-43:54
+50                android:name="android.support.FILE_PROVIDER_PATHS"
+50-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:42:17-67
+51                android:resource="@xml/file_paths" />
+51-->D:\Twilight\FarmlandProject\project1.0\app\AndroidApp\app\src\main\AndroidManifest.xml:43:17-51
+52        </provider>
+53    </application>
+54
+55</manifest>

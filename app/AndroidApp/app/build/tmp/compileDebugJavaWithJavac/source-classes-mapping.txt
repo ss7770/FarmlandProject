@@ -1,0 +1,55 @@
+com/example/smartfarm/MoreActivity.java
+ com.example.smartfarm.MoreActivity
+com/example/smartfarm/SensorData.java
+ com.example.smartfarm.SensorData
+com/example/smartfarm/TcpClient.java
+ com.example.smartfarm.TcpClient
+ com.example.smartfarm.TcpClient$1
+ com.example.smartfarm.TcpClient$2
+ com.example.smartfarm.TcpClient$3
+ com.example.smartfarm.TcpClient$4
+ com.example.smartfarm.TcpClient$5
+ com.example.smartfarm.TcpClient$6
+ com.example.smartfarm.TcpClient$7
+ com.example.smartfarm.TcpClient$OnConnectionListener
+ com.example.smartfarm.TcpClient$OnDataReceivedListener
+com/example/smartfarm/BuildConfig.java
+ com.example.smartfarm.BuildConfig
+com/example/smartfarm/DiseaseDetector.java
+ com.example.smartfarm.DiseaseDetector
+com/example/smartfarm/DetectionResult.java
+ com.example.smartfarm.DetectionResult
+com/example/smartfarm/DiseaseKnowledge.java
+ com.example.smartfarm.DiseaseKnowledge
+com/example/smartfarm/DiseaseActivity.java
+ com.example.smartfarm.DiseaseActivity
+ com.example.smartfarm.DiseaseActivity$1
+ com.example.smartfarm.DiseaseActivity$2
+ com.example.smartfarm.DiseaseActivity$3
+ com.example.smartfarm.DiseaseActivity$4
+ com.example.smartfarm.DiseaseActivity$5
+ com.example.smartfarm.DiseaseActivity$5$1
+ com.example.smartfarm.DiseaseActivity$6
+ com.example.smartfarm.DiseaseActivity$6$1
+ com.example.smartfarm.DiseaseActivity$7
+ com.example.smartfarm.DiseaseActivity$7$1
+ com.example.smartfarm.DiseaseActivity$8
+ com.example.smartfarm.DiseaseActivity$8$1
+com/example/smartfarm/MainActivity.java
+ com.example.smartfarm.MainActivity
+ com.example.smartfarm.MainActivity$1
+ com.example.smartfarm.MainActivity$2
+ com.example.smartfarm.MainActivity$3
+ com.example.smartfarm.MainActivity$4
+ com.example.smartfarm.MainActivity$5
+ com.example.smartfarm.MainActivity$6
+ com.example.smartfarm.MainActivity$7
+ com.example.smartfarm.MainActivity$8
+ com.example.smartfarm.MainActivity$9
+com/example/smartfarm/DiseasePoller.java
+ com.example.smartfarm.DiseasePoller
+ com.example.smartfarm.DiseasePoller$1
+ com.example.smartfarm.DiseasePoller$2
+ com.example.smartfarm.DiseasePoller$2$1
+ com.example.smartfarm.DiseasePoller$3
+ com.example.smartfarm.DiseasePoller$Listener

@@ -1,0 +1,13 @@
+FAIL dl_log.txt: [safe-delete][SAFE_DELETE_FAIL_CLOSED] {"target":"D:\\Twilight\\FarmlandProject\\project1.0\\app\\AI_Model\\dl_log.txt","reason":"trash-failed","detail":"ERROR D:\\Twilight\\FarmlandProject\\project1.0\\app\\AI_Model\\dl_log.txt: Error during a `trash` operation: Unknown { description: \"Some operations were aborted\" }"}
+FAIL dl_log2.txt: [safe-delete][SAFE_DELETE_FAIL_CLOSED] {"target":"D:\\Twilight\\FarmlandProject\\project1.0\\app\\AI_Model\\dl_log2.txt","reason":"trash-failed","detail":"ERROR D:\\Twilight\\FarmlandProject\\project1.0\\app\\AI_Model\\dl_log2.txt: Error during a `trash` operation: Unknown { description: \"Some operations were aborted\" }"}
+FAIL proxy_info.txt: [safe-delete][SAFE_DELETE_FAIL_CLOSED] {"target":"D:\\Twilight\\FarmlandProject\\project1.0\\app\\AI_Model\\proxy_info.txt","reason":"trash-failed","detail":"ERROR D:\\Twilight\\FarmlandProject\\project1.0\\app\\AI_Model\\proxy_info.txt: Error during a `trash` operation: Unknown { description: \"Some operations were aborted\" }"}
+FAIL py_log.txt: [safe-delete][SAFE_DELETE_FAIL_CLOSED] {"target":"D:\\Twilight\\FarmlandProject\\project1.0\\app\\AI_Model\\py_log.txt","reason":"trash-failed","detail":"ERROR D:\\Twilight\\FarmlandProject\\project1.0\\app\\AI_Model\\py_log.txt: Error during a `trash` operation: Unknown { description: \"Some operations were aborted\" }"}
+FAIL verify_result.txt: [safe-delete][SAFE_DELETE_FAIL_CLOSED] {"target":"D:\\Twilight\\FarmlandProject\\project1.0\\app\\AI_Model\\verify_result.txt","reason":"trash-failed","detail":"ERROR D:\\Twilight\\FarmlandProject\\project1.0\\app\\AI_Model\\verify_result.txt: Error during a `trash` operation: Unknown { description: \"Some operations were aborted\" }"}
+FAIL verify_model.py: [safe-delete][SAFE_DELETE_FAIL_CLOSED] {"target":"D:\\Twilight\\FarmlandProject\\project1.0\\app\\AI_Model\\verify_model.py","reason":"trash-failed","detail":"ERROR D:\\Twilight\\FarmlandProject\\project1.0\\app\\AI_Model\\verify_model.py: Error during a `trash` operation: Unknown { description: \"Some operations were aborted\" }"}
+class_indices.json
+cleanup_log.txt
+DiseaseKnowledge.java
+disease_zh_map.md
+final_list.txt
+labels.txt
+model.tflite

@@ -1,0 +1,15 @@
+server:
+  port: 8080
+  
+weather:
+  api-key: "57b9db8aa13a440e8d33c295c8850001" # YOUR_WEATHER_API_KEY
+  city-code: "101100401" # YOUR_CITY_CODE
+  base-url: "https://n26r72yhat.re.qweatherapi.com/v7/weather/now" # YOUR_BASE_URL
+  update-interval: 30
+sensor:
+  db-path: "D:/Twilight/FarmlandProject/project1.0/app/Python_Backend/sensor.db" # YOUR_DB_PATH
+
+
+logging:
+  level:
+    com.example.smartfarm: DEBUG

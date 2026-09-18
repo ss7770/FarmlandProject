@@ -1,0 +1,98 @@
+[
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\drawable_ic_soil.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\drawable\\ic_soil.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-mdpi_ic_launcher_round.webp.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-xhdpi_ic_launcher.webp.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-xxhdpi_ic_launcher_round.webp.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\drawable-anydpi-v24_ic_launcher_foreground.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\generated\\res\\pngs\\debug\\drawable-anydpi-v24\\ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\mipmap-anydpi-v26\\ic_launcher_round.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\layout_dialog_threshold.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\layout\\dialog_threshold.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\drawable_ic_temp.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\drawable\\ic_temp.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-hdpi_ic_launcher_round.webp.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\drawable_ic_water.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\drawable\\ic_water.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\drawable_ic_launcher_background.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\drawable\\ic_launcher_background.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\drawable_ic_humi.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\drawable\\ic_humi.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-xxhdpi_ic_launcher.webp.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-xxxhdpi_ic_launcher.webp.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\drawable_ic_light.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\drawable\\ic_light.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-hdpi_ic_launcher.webp.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\xml_file_paths.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\xml\\file_paths.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-xxxhdpi_ic_launcher_round.webp.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\layout_activity_main.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\layout\\activity_main.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\layout_activity_disease.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\layout\\activity_disease.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-xhdpi_ic_launcher_round.webp.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\layout_activity_more.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\layout\\activity_more.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\mipmap-anydpi-v26\\ic_launcher.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-mdpi_ic_launcher.webp.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher.webp"
+    }
+]

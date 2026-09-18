@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>历史数据看板</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <script src="../static/js/echarts.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-bar" style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
+            <a href="/" style="text-decoration:none;color:#5cb85c;font-size:14px;">← 返回看板</a>
+            <span style="color:#999;font-size:13px;">|</span>
+            <span style="color:#555;font-size:14px;font-weight:bold;">历史数据看板</span>
+        </div>
+        <div id="card" class="card">
+            <div class="controls">
+                <label>参数</label>
+                <select id="select">
+                    <option value="temp">温度</option>
+                    <option value="humi">湿度</option>
+                    <option value="light" selected>光照强度</option>
+                    <option value="soil">土壤湿度</option>
+                    <option value="water">水位</option>
+                </select>
+                <div class="time-buttons">
+                    <button id="btn-6h">近6h</button>
+                    <button id="btn-24h">近24h</button>
+                    <button id="btn-3d">近3天</button>
+                </div>
+                <button id="btn-refresh" class="btn-refresh">刷新</button>
+            </div>
+        </div>
+        <div class="chart">
+            <div id="chart" style="width: 100%; height: 400px;"></div>
+        </div>
+        <div class="history-list">
+            <h4>数据列表</h4>
+            <table id="data-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                    <tr>
+                        <th style="text-align:left;padding:6px;border-bottom:1px solid #eee;">时间</th>
+                        <th id="th-value" style="text-align:right;padding:6px;border-bottom:1px solid #eee;">数值</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <tr><td colspan="2" style="padding:8px;color:#999;">加载中…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script src="../static/js/history.js"></script>
+</body>
+</html>
