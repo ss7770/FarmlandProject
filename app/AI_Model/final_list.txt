@@ -1,0 +1,21 @@
+
+
+    Ŀ¼: D:\Twilight\FarmlandProject\project1.0\app\AI_Model
+
+
+Mode                 LastWriteTime         Length Name                         
+----                 -------------         ------ ----                         
+-a----         2026/9/17      1:52           1507 class_indices.json           
+-a----         2026/9/17      1:56           8130 DiseaseKnowledge.java        
+-a----         2026/9/17      1:56           6464 disease_zh_map.md            
+-a----         2026/9/17      1:53             43 dl_log.txt                   
+-a----         2026/9/17      1:50             65 dl_log2.txt                  
+-a----         2026/9/17      1:51           1018 labels.txt                   
+-a----         2026/9/17      1:53       12950792 model.tflite                 
+-a----         2026/9/17      1:50             95 proxy_info.txt               
+-a----         2026/9/17      1:54              8 py_log.txt                   
+-a----         2026/9/17      1:53           1246 verify_model.py              
+-a----         2026/9/17      1:54           1710 verify_result.txt            
+
+
+

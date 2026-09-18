@@ -1,0 +1,90 @@
+Android APP 功能简述：
+点击唯一按钮 → 发送指令至 STM32 → STM32 控制水泵开关
+
+项目结构
+
+AndroidApp/
+├── app/
+│   ├── src/main/
+│   │   ├── java/com/example/smartfarm/
+│   │   │   ├── MainActivity.java      主界面 Activity
+│   │   │   ├── TcpClient.java         TCP 客户端通信模块
+│   │   │   └── SensorData.java        传感器数据模型
+│   │   ├── res/
+│   │   │   ├── layout/
+│   │   │   │   ├── activity_main.xml      主界面布局
+│   │   │   │   └── dialog_threshold.xml   阈值设置对话框
+│   │   │   ├── drawable/
+│   │   │   │   ├── ic_temp.xml
+│   │   │   │   ├── ic_humi.xml
+│   │   │   │   ├── ic_light.xml
+│   │   │   │   ├── ic_soil.xml
+│   │   │   │   └── ic_water.xml
+│   │   │   ├── values/
+│   │   │   │   ├── strings.xml
+│   │   │   │   ├── colors.xml
+│   │   │   │   └── styles.xml
+│   │   │   └── AndroidManifest.xml
+│   │   └── build.gradle
+│   ├── build.gradle
+│   ├── settings.gradle
+│   └── gradle/wrapper/
+
+JAVA_Backend (项目根目录)
+├── bin                      编译输出目录
+├── build                    Gradle 构建目录
+├── src                      源代码目录
+│   └── main
+│       ├── java             Java 源代码
+│       │   └── com
+│       │       └── example
+│       │           └── smartfarm
+│       │               ├── model                数据模型包
+│       │               │   ├── IrrigationStrategy.java     灌溉策略计算
+│       │               │   └── WeatherData.java            天气数据模型
+│       │               ├── SmartFarmApplication.java     Spring Boot 启动类
+│       │               └── WeatherController.java        天气 API 控制器
+│       └── resources        资源配置目录
+├── build.gradle             Gradle 项目构建配置文件
+└── settings.gradle          Gradle 项目设置文件
+
+
+JAVA_Backend/
+└── src/main/
+    ├── java/com/example/smartfarm/
+    │   ├── SmartFarmApplication.java      Spring Boot 启动类
+    │   └── model/
+    │       ├── IrrigationStrategy.java
+    │       └── WeatherData.java
+    └── resources/
+        └── application.yml                 配置文件
+
+PythonBackend/
+├── app.py      # 建表 + 主入口，注册蓝图，定义 API 路由
+├── utils.py    # 数据库连接和查询函数
+├── blueprints/
+│ ├── init.py
+│ └── history.py
+├── templates/
+│ └── dashboard.html # 图表看板页面
+│ └── error.html
+├── static/
+│ └── css/
+│      └── style.css
+│ └── js/
+│       └── main.css
+├── sensor.db
+└── README.md
+
+还原后的 APP 功能
+
+├── 设备连接
+│    └── 输入 IP 地址和端口，连接 STM32 设备
+├── 实时数据的显示
+│    └── 显示环境监测数据（温度、湿度、光照强度、土壤湿度、水位高度）和报警信息
+├── 自动重新连接
+│    └── 断开时自动检测并重新连接，保持与 STM32 的通信
+├── 连接状态显示
+│    └── 显示当前连接状态（已连接 / 未连接）
+└── 阈值远程设置
+     └── 通过对话框设置报警阈值，发送到硬件

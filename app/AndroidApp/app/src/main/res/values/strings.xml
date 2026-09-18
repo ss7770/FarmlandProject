@@ -1,0 +1,57 @@
+<resources>
+    <string name="app_name">智慧农田监控</string>
+    <string name="connect">连接</string>
+    <string name="disconnect">断开</string>
+    <string name="ip_address">IP地址</string>
+    <string name="port">端口</string>
+    <string name="temperature">温度</string>
+    <string name="humidity">湿度</string>
+    <string name="light">光照强度</string>
+    <string name="soil_moisture">土壤湿度</string>
+    <string name="water_level">水位</string>
+    <string name="threshold_settings">阈值设置</string>
+    <string name="temp_threshold">温度阈值(°C)</string>
+    <string name="humi_threshold">湿度阈值(%)</string>
+    <string name="light_threshold">光照阈值(Lux)</string>
+    <string name="water_threshold">水位阈值(ADC)</string>
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+    <string name="connected">已连接</string>
+    <string name="disconnected">已断开</string>
+    <string name="connecting">连接中...</string>
+    <string name="connection_failed">连接失败</string>
+    <string name="enter_ip">请输入IP地址</string>
+    <string name="enter_port">请输入端口号</string>
+    <string name="temp_unit">°C</string>
+    <string name="humi_unit">%</string>
+    <string name="light_unit">Lux</string>
+    <string name="soil_unit">%</string>
+    <string name="water_unit">ADC</string>
+    <string name="disease_entry">图像识别看板</string>
+    <string name="more_entry">更多（天气/图表/巡检记录）</string>
+
+    <!-- 更多看板 -->
+    <string name="more_title">更多</string>
+
+    <!-- 图像识别看板 -->
+    <string name="disease_title">图像识别看板</string>
+    <string name="disease_pick_image">本地上传</string>
+    <string name="disease_take_photo">拍照识别</string>
+    <string name="disease_no_image">暂无拍摄</string>
+    <string name="disease_no_record">暂无识别记录，显示最近巡检图片</string>
+    <string name="disease_detecting">识别中…</string>
+    <string name="disease_model_loading">AI 模型加载中…</string>
+    <string name="disease_model_ready">模型就绪，请选择叶片图片</string>
+    <string name="disease_model_error">模型加载失败，请重启应用</string>
+    <string name="disease_image_ready">图片已就绪，点击\"开始识别\"</string>
+    <string name="disease_pick_first">请先选择图片</string>
+    <string name="disease_model_loading_toast">模型加载中，请稍候</string>
+    <string name="disease_decode_failed">图片读取失败，请换一张图片</string>
+    <string name="disease_detect_failed">识别失败，请重试</string>
+    <string name="disease_need_storage">需要存储权限以读取相册图片</string>
+    <string name="disease_result_title">识别结果</string>
+    <string name="disease_confidence_fmt">置信度：%1$d%%</string>
+    <string name="disease_suggestion_title">防治建议</string>
+    <string name="disease_suggestion_prefix">建议：</string>
+    <string name="disease_disclaimer">AI 识别结果仅供参考，具体病害防治请咨询当地农技人员或农业专家。因使用本识别结果造成的任何损失，本项目不承担法律责任。</string>
+</resources>

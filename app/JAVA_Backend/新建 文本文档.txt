@@ -1,0 +1,1 @@
+D:\software\gradle-8.5\bin\gradle.bat bootRun

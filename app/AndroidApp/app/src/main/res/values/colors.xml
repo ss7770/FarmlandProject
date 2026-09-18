@@ -1,0 +1,12 @@
+<resources>
+    <color name="colorPrimary">#4CAF50</color>
+    <color name="colorPrimaryDark">#388E3C</color>
+    <color name="colorAccent">#FF5722</color>
+    <color name="colorBackground">#F5F5F5</color>
+    <color name="colorCard">#FFFFFF</color>
+    <color name="colorText">#333333</color>
+    <color name="colorTextSecondary">#666666</color>
+    <color name="colorSuccess">#4CAF50</color>
+    <color name="colorError">#F44336</color>
+    <color name="colorWarning">#FF9800</color>
+</resources>
