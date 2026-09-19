@@ -70,9 +70,10 @@ public class WeatherController {
 
         // ---------- 3. 从 SQLite 读取土壤湿度 ----------
         int soilHumidity = 45; // 默认值
-        String dbPath = "jdbc:sqlite:D:/Twilight/FarmlandProject/project1.0/app/Python_Backend/sensor.db";
+        // 使用 application.yml 注入的 sensor.db-path（不再用局部变量遮蔽配置项）
+        String jdbcUrl = "jdbc:sqlite:" + dbPath;
 
-        try (Connection dbConn = DriverManager.getConnection(dbPath);
+        try (Connection dbConn = DriverManager.getConnection(jdbcUrl);
              Statement stmt = dbConn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT soil FROM data ORDER BY id DESC LIMIT 1")) {
 

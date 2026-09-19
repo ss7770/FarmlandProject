@@ -35,8 +35,8 @@ import java.util.concurrent.Executors;
 public class DiseasePoller {
 
     private static final String TAG = "DiseasePoller";
-    /** Flask 后端地址，部署时改成电脑局域网 IP（与 DiseaseActivity 保持一致） */
-    public static final String SERVER_BASE = "http://192.168.57.97:5000";
+    /** Flask 后端默认地址（P0：实际地址从 ServerConfig 读取，APP 内可改，不再硬编码） */
+    public static final String SERVER_BASE = ServerConfig.DEFAULT_SERVER_BASE;
     /** 文档 v1.4：默认 30 秒轮询一次；演示时想更快可改小 */
     private static final long POLL_INTERVAL_MS = 30_000L;
     private static final String CHANNEL_ID = "disease_alert";
@@ -130,7 +130,7 @@ public class DiseasePoller {
     };
 
     private void pollOnce() throws Exception {
-        URL url = new URL(SERVER_BASE + "/api/disease/latest?after_id=" + lastId);
+        URL url = new URL(ServerConfig.get(appContext) + "/api/disease/latest?after_id=" + lastId);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setConnectTimeout(5000);
         conn.setReadTimeout(5000);

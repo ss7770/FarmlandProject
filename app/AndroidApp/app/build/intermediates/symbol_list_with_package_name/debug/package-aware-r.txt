@@ -911,6 +911,7 @@ id btn_disease
 id btn_more
 id btn_pick_image
 id btn_save
+id btn_server
 id btn_take_photo
 id btn_threshold
 id buttonPanel
@@ -1240,6 +1241,9 @@ string more_title
 string port
 string save
 string search_menu_title
+string server_settings
+string server_settings_hint
+string server_settings_saved
 string soil_moisture
 string soil_unit
 string status_bar_notification_info_overflow

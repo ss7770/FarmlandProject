@@ -47,6 +47,7 @@ import java.util.Locale;
  * - 区域3：[本地上传]（相册选图）[拍照识别]（系统相机拍照）
  *   两者的图都会 POST /api/upload_image，APP 直接解析服务端响应立即显示结果，
  *   不再依赖“拉最新记录”（置信度低于 60% 不入库时也能看到识别结果）
+ * - P1 断网自治：服务端不可达时自动降级本地 TFLite 离线识别（DiseaseDetector）
  */
 public class DiseaseActivity extends AppCompatActivity {
 
@@ -57,6 +58,9 @@ public class DiseaseActivity extends AppCompatActivity {
     private static final int REQUEST_CAMERA = 104;
     /** 页面内看板刷新间隔（文档 §2.3） */
     private static final long REFRESH_INTERVAL_MS = 30_000L;
+    /** P2 拒识三档阈值（与服务端 capture.py 一致，单位 %） */
+    private static final double VERDICT_CONFIRMED_PCT = 75.0;
+    private static final double VERDICT_SUSPECTED_PCT = 45.0;
 
     private ImageView ivImage;
     private TextView tvEmpty;
@@ -77,6 +81,10 @@ public class DiseaseActivity extends AppCompatActivity {
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private boolean refreshing = false;
+
+    /** 本地 TFLite 离线识别器（P1：服务端不可达时的断网备份） */
+    private DiseaseDetector offlineDetector;
+    private volatile boolean offlineLoading = false;
 
     private final Runnable refreshRunnable = new Runnable() {
         @Override
@@ -160,7 +168,7 @@ public class DiseaseActivity extends AppCompatActivity {
                 String err = null;
                 try {
                     HttpURLConnection conn = (HttpURLConnection)
-                            new URL(DiseasePoller.SERVER_BASE + "/api/disease/records?limit=1")
+                            new URL(ServerConfig.get(DiseaseActivity.this) + "/api/disease/records?limit=1")
                                     .openConnection();
                     conn.setConnectTimeout(4000);
                     conn.setReadTimeout(4000);
@@ -225,7 +233,10 @@ public class DiseaseActivity extends AppCompatActivity {
         } else {
             fetchLatestUploadImage();
         }
-        showRecordResult(disease, confidence, hasNew || first);
+        // 历史记录可能建于旧阈值（60%）时期：按当前三档规则归档展示
+        double pct = confidence > 0 && confidence <= 1.0 ? confidence * 100.0 : confidence;
+        String verdict = pct >= VERDICT_CONFIRMED_PCT ? "confirmed" : "suspected";
+        showRecordResult(disease, confidence, verdict, hasNew || first);
     }
 
     /** GET /api/uploads/latest：无识别记录时兜底显示最近巡检/预置图片 + 其识别结果 */
@@ -236,9 +247,10 @@ public class DiseaseActivity extends AppCompatActivity {
                 String name = null;
                 String label = null;
                 double confidence = 0;
+                String verdict = "confirmed";
                 try {
                     HttpURLConnection conn = (HttpURLConnection)
-                            new URL(DiseasePoller.SERVER_BASE + "/api/uploads/latest")
+                            new URL(ServerConfig.get(DiseaseActivity.this) + "/api/uploads/latest")
                                     .openConnection();
                     conn.setConnectTimeout(4000);
                     conn.setReadTimeout(60000);   // 首次可能触发服务端推理
@@ -249,6 +261,7 @@ public class DiseaseActivity extends AppCompatActivity {
                             if (root.has("disease")) {
                                 label = root.optString("disease", "");
                                 confidence = root.optDouble("confidence", 0);
+                                verdict = root.optString("verdict", "confirmed");
                             }
                         }
                     }
@@ -259,6 +272,7 @@ public class DiseaseActivity extends AppCompatActivity {
                 final String fName = name;
                 final String fLabel = label;
                 final double fConfidence = confidence;
+                final String fVerdict = verdict;
                 if (fName != null) {
                     downloadImage("/api/uploads/" + fName);
                 }
@@ -266,8 +280,10 @@ public class DiseaseActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            showRecordResult(fLabel, fConfidence, false);
-                            tvStatus.setText("最近图片识别结果（未写入巡检记录）");
+                            showRecordResult(fLabel, fConfidence, fVerdict, false);
+                            tvStatus.setText("rejected".equals(fVerdict)
+                                    ? "最近图片已拒识（未写入巡检记录）"
+                                    : "最近图片识别结果（未写入巡检记录）");
                         }
                     });
                 }
@@ -283,7 +299,7 @@ public class DiseaseActivity extends AppCompatActivity {
                     String name = imagePath.contains("/")
                             ? imagePath.substring(imagePath.lastIndexOf('/') + 1)
                             : imagePath;
-                    URL url = new URL(DiseasePoller.SERVER_BASE + "/api/uploads/" + name);
+                    URL url = new URL(ServerConfig.get(DiseaseActivity.this) + "/api/uploads/" + name);
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                     conn.setConnectTimeout(5000);
                     conn.setReadTimeout(5000);
@@ -312,18 +328,52 @@ public class DiseaseActivity extends AppCompatActivity {
         }).start();
     }
 
-    /** 用服务器记录渲染"当前识别结果"卡片 */
+    /** 用服务器记录渲染"当前识别结果"卡片（confirmed 档） */
     private void showRecordResult(String label, double confidence, boolean speakIt) {
+        showRecordResult(label, confidence, "confirmed", speakIt);
+    }
+
+    /**
+     * 按 P2 三档置信度渲染结果卡片。
+     * verdict: confirmed（≥75%，确诊）/ suspected（45~75%，疑似建议重拍）/ rejected（<45%，拒识）
+     */
+    private void showRecordResult(String label, double confidence, String verdict, boolean speakIt) {
         String name = DiseaseKnowledge.getChineseName(label);
         if (name == null || name.length() == 0) name = label;
         String suggestion = DiseaseKnowledge.getSuggestion(label);
         int percent = (int) Math.round(confidence);
         if (confidence > 0 && confidence <= 1.0) percent = (int) Math.round(confidence * 100);
+        boolean healthy = label.endsWith("healthy");
 
         cardResult.setVisibility(View.VISIBLE);
         tvStatus.setText("");
-        boolean healthy = label.endsWith("healthy");
 
+        if ("rejected".equals(verdict)) {
+            tvName.setText("无法可靠识别");
+            tvConfidence.setText(String.format(getString(R.string.disease_confidence_fmt), percent));
+            tvConfidence.setTextColor(getResources().getColor(R.color.colorError));
+            tvSuggestion.setText("最高候选：" + name
+                    + "。未匹配到可靠的叶片病害特征，请对准叶片、保证光照充足后重拍；非叶片目标将被拒识。");
+            if (speakIt && ttsReady && tts != null) {
+                speak("未能可靠识别，请对准叶片重新拍摄");
+            }
+            return;
+        }
+
+        if ("suspected".equals(verdict)) {
+            tvName.setText("疑似：" + name);
+            tvConfidence.setText(String.format(getString(R.string.disease_confidence_fmt), percent));
+            tvConfidence.setTextColor(getResources().getColor(R.color.colorWarning));
+            tvSuggestion.setText(getString(R.string.disease_suggestion_prefix)
+                    + (suggestion == null ? "暂无防治建议" : suggestion)
+                    + "（疑似结果，建议多角度重拍确认后再处理）");
+            if (speakIt && ttsReady && tts != null) {
+                speak("疑似检测到" + name + "，置信度" + percent + "%，建议重拍确认");
+            }
+            return;
+        }
+
+        // confirmed：确诊档
         tvName.setText(name);
         tvConfidence.setText(String.format(getString(R.string.disease_confidence_fmt), percent));
         tvConfidence.setTextColor(getResources().getColor(
@@ -475,20 +525,23 @@ public class DiseaseActivity extends AppCompatActivity {
                 String error = null;
                 String respBody = null;
                 try {
-                    respBody = multipartUpload(payload);
+                    respBody = multipartUpload(ServerConfig.get(DiseaseActivity.this), payload);
                 } catch (Exception e) {
                     Log.e(TAG, "upload failed", e);
                     error = e.getMessage();
                 }
                 final String err = error;
                 final String resp = respBody;
+                final byte[] payloadBytes = payload;
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         btnPick.setEnabled(true);
                         btnTake.setEnabled(true);
                         if (err != null) {
-                            tvStatus.setText("上传识别失败：" + err);
+                            // P1：服务端不可达 → 自动降级本地 TFLite 离线识别
+                            tvStatus.setText("服务端不可达（" + err + "），切换本地离线识别…");
+                            runOfflineDetect(payloadBytes);
                             return;
                         }
                         applyUploadResponse(resp);
@@ -498,7 +551,7 @@ public class DiseaseActivity extends AppCompatActivity {
         }).start();
     }
 
-    /** 解析 /api/upload_image 的 JSON 响应，立即渲染结果（不等/不依赖写库） */
+    /** 解析 /api/upload_image 的 JSON 响应，按三档置信度渲染结果（不等/不依赖写库） */
     private void applyUploadResponse(String body) {
         try {
             JSONObject root = new JSONObject(body);
@@ -510,12 +563,18 @@ public class DiseaseActivity extends AppCompatActivity {
             if (root.has("disease")) {
                 String label = root.optString("disease", "");
                 double confidence = root.optDouble("confidence", 0);
-                showRecordResult(label, confidence, true);
-                if (msg.contains("not recorded")) {
-                    // 置信度低于 60% 阈值，服务端未入库：结果照常展示
-                    tvStatus.setText("识别完成（置信度低于入库阈值，未写入巡检记录）");
+                String verdict = root.optString("verdict", "");
+                if (verdict.length() == 0) {
+                    // 兼容旧服务端：仅按"not recorded"标记降级为疑似档
+                    verdict = msg.contains("not recorded") ? "suspected" : "confirmed";
+                }
+                showRecordResult(label, confidence, verdict, true);
+                if ("confirmed".equals(verdict)) {
+                    tvStatus.setText("识别完成（已写入巡检记录）");
+                } else if ("suspected".equals(verdict)) {
+                    tvStatus.setText("疑似病害：结果仅供参考，建议重拍确认（未写入巡检记录）");
                 } else {
-                    tvStatus.setText("识别完成");
+                    tvStatus.setText("已拒识：未匹配到可靠叶片病害（未写入巡检记录）");
                 }
             } else {
                 tvStatus.setText("图片已保存：" + root.optString("saved", "")
@@ -527,7 +586,67 @@ public class DiseaseActivity extends AppCompatActivity {
         }
     }
 
-    private static String multipartUpload(byte[] image) throws Exception {
+    // ---------- 本地离线识别（P1：断网备份） ----------
+
+    /**
+     * 服务端不可达时用本地 TFLite（assets/model.tflite，MobileNetV2 38 类）识别。
+     * 模型懒加载一次常驻；识别结果走与在线一致的展示/播报链路，仅状态栏标注"离线"。
+     */
+    private void runOfflineDetect(final byte[] imageBytes) {
+        if (offlineLoading) return;
+        offlineLoading = true;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Exception failure = null;
+                DetectionResult result = null;
+                try {
+                    if (offlineDetector == null) {
+                        DiseaseDetector detector = new DiseaseDetector();
+                        detector.loadModel(DiseaseActivity.this);   // 首次约 1~2 秒
+                        offlineDetector = detector;
+                    }
+                    Bitmap bmp = decodeSampled(imageBytes, 640);
+                    if (bmp == null) {
+                        failure = new IllegalStateException("图片解码失败");
+                    } else {
+                        result = offlineDetector.detect(bmp);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "offline detect failed", e);
+                    failure = e;
+                } finally {
+                    offlineLoading = false;
+                }
+                final DetectionResult r = result;
+                final Exception e = failure;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (e != null || r == null) {
+                            tvStatus.setText("离线识别不可用："
+                                    + (e == null ? "未知错误" : e.getMessage()));
+                            return;
+                        }
+                        // 本地同样执行 P2 三档拒识（阈值与服务端一致）
+                        double pct = r.confidence * 100.0;
+                        String verdict = pct >= VERDICT_CONFIRMED_PCT ? "confirmed"
+                                : (pct >= VERDICT_SUSPECTED_PCT ? "suspected" : "rejected");
+                        showRecordResult(r.rawLabel, r.confidence, verdict, true);
+                        if ("rejected".equals(verdict)) {
+                            tvStatus.setText("离线拒识：未匹配到可靠叶片病害（本地 TFLite）");
+                        } else if ("suspected".equals(verdict)) {
+                            tvStatus.setText("离线识别完成（疑似，本地 TFLite，服务端未联网）");
+                        } else {
+                            tvStatus.setText("离线识别完成（本地 TFLite，服务端未联网）");
+                        }
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private static String multipartUpload(String baseUrl, byte[] image) throws Exception {
         String boundary = "----SmartFarmAppBoundary9f2c";
         String prefix = "--" + boundary +
                 "\r\nContent-Disposition: form-data; name=\"image\"; filename=\"upload.jpg\"\r\n" +
@@ -536,7 +655,7 @@ public class DiseaseActivity extends AppCompatActivity {
         byte[] suffixBytes = ("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8);
 
         HttpURLConnection conn = (HttpURLConnection)
-                new URL(DiseasePoller.SERVER_BASE + "/api/upload_image").openConnection();
+                new URL(baseUrl + "/api/upload_image").openConnection();
         conn.setRequestMethod("POST");
         conn.setConnectTimeout(8000);
         conn.setReadTimeout(60000);   // 服务端推理 + 冷启动需要时间
@@ -633,6 +752,10 @@ public class DiseaseActivity extends AppCompatActivity {
                 tts.shutdown();
             } catch (Exception ignored) {
             }
+        }
+        if (offlineDetector != null) {
+            offlineDetector.close();
+            offlineDetector = null;
         }
         super.onDestroy();
     }

@@ -183,3 +183,83 @@ function loadDiseaseRecords() {
 }
 
 window.addEventListener('load', loadDiseaseRecords);
+
+// ===== AI 灌溉决策面板（P2：融合墒情预测 + 天气 + 病害，可解释输出） =====
+var AI_REFRESH_MS = 60000;
+
+function riskBadge(level) {
+    var cls = 'risk-low';
+    if (level === '高') cls = 'risk-high';
+    else if (level === '中') cls = 'risk-mid';
+    return '<span class="risk-badge ' + cls + '">' + level + '风险</span>';
+}
+
+function fmtPct(v) {
+    return (v === null || v === undefined) ? '--' : Number(v).toFixed(1) + '%';
+}
+
+function methodLabel(f) {
+    if (f.method === 'model') return '模型：' + (f.model || 'GBDT/RF');
+    if (f.method === 'linear_fallback') return '线性外推（历史不足兜底）';
+    return '不可用';
+}
+
+function loadAiRecommendation() {
+    fetch('/api/ai/recommendation')
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            if (d.status !== 'ok') throw new Error(d.msg || '接口异常');
+            var rec = d.recommendation || {};
+            var fc = d.forecast || {};
+            var sensor = d.sensor || {};
+            var disease = d.disease;
+
+            var action = rec.should_irrigate
+                ? '建议灌溉：小水量分阶段运行约 ' + rec.suggested_pump_seconds + ' 秒，目标湿度 ' + rec.target_soil + '%'
+                : '暂无需灌溉';
+            document.getElementById('ai-summary').innerHTML =
+                riskBadge(rec.risk_level || '低') +
+                '<b>' + action + '</b>' +
+                '<span class="ai-time">' + (d.generated_at || '') + '</span>';
+
+            var chips = [
+                ['当前土壤', fmtPct(sensor.soil), ''],
+                ['当前温度', (sensor.temp === undefined ? '--' : sensor.temp) + '℃', ''],
+                ['预测+30min', fmtPct(fc.soil_30), ''],
+                ['预测+60min', fmtPct(fc.soil_60), ''],
+                ['预测方式', methodLabel(fc), ''],
+                ['数据时间', fc.last_ts || sensor.timestamp || '--', '']
+            ];
+            if (fc.stale) chips.push(['数据状态', '陈旧（检查链路）', 'warn']);
+            if (d.weather && !d.weather.reason) {
+                chips.push(['天气', (d.weather.weather || '--') + ' / 24h雨 ' +
+                    (d.weather.rain24h === undefined ? '--' : d.weather.rain24h) + 'mm', '']);
+            }
+            if (disease) {
+                var conf = Number(disease.confidence || 0);
+                chips.push(['最新病害', disease.disease + '（' + conf.toFixed(0) + '%）', 'warn']);
+            }
+            var chipsHtml = '';
+            chips.forEach(function (c) {
+                chipsHtml += '<span class="ai-chip ' + c[2] + '"><i>' + c[0] + '</i>' + c[1] + '</span>';
+            });
+            document.getElementById('ai-chips').innerHTML = chipsHtml;
+
+            var ul = document.getElementById('ai-reasons');
+            ul.innerHTML = '';
+            (rec.reasons || []).forEach(function (t) {
+                var li = document.createElement('li');
+                li.textContent = '· ' + t;
+                ul.appendChild(li);
+            });
+
+            document.getElementById('ai-note').textContent = rec.safety_note || '';
+        })
+        .catch(function (e) {
+            var s = document.getElementById('ai-summary');
+            if (s) s.innerHTML = '<span class="risk-badge risk-mid">不可用</span> AI 建议加载失败：' + e.message;
+        });
+}
+
+window.addEventListener('load', loadAiRecommendation);
+window.setInterval(loadAiRecommendation, AI_REFRESH_MS);

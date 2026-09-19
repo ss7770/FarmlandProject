@@ -35,6 +35,7 @@
 .\objects\main.o: .\Hardware\DHT11.h
 .\objects\main.o: D:\software\Keil_v5\ARM\ARMCC\Bin\..\include\stdbool.h
 .\objects\main.o: .\Hardware\ESP01S.h
+.\objects\main.o: .\Hardware\wifi_config_private.h
 .\objects\main.o: .\System\Serial.h
 .\objects\main.o: D:\software\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
 .\objects\main.o: D:\software\Keil_v5\ARM\ARMCC\Bin\..\include\stdarg.h

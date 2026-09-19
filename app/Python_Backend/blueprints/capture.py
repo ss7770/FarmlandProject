@@ -5,8 +5,21 @@ from utils.db import get_db_connection
 
 capture_bp = Blueprint('capture', __name__, url_prefix='/api')
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'uploads')
-# 文档 v1.4：识别置信度达到该百分比才写入 disease_records，否则只存图不打扰用户
-CONFIDENCE_THRESHOLD = 60.0
+# 文档 v2.2 §4.4 拒识机制（三档置信度，P2）：
+#   >= CONFIRMED_THRESHOLD   确诊：写入 disease_records，APP 通知
+#   >= SUSPECTED_THRESHOLD   疑似：不入库，APP 提示"疑似 + 建议重拍"
+#   <  SUSPECTED_THRESHOLD   拒识：不入库，APP 提示"无法可靠识别，请对准叶片重拍"
+CONFIRMED_THRESHOLD = 75.0
+SUSPECTED_THRESHOLD = 45.0
+
+
+def classify_verdict(confidence):
+    """confidence 为 0~100 百分数，返回 confirmed / suspected / rejected"""
+    if confidence >= CONFIRMED_THRESHOLD:
+        return 'confirmed'
+    if confidence >= SUSPECTED_THRESHOLD:
+        return 'suspected'
+    return 'rejected'
 
 def _ensure_columns():
     conn = get_db_connection(); cur = conn.cursor()
@@ -34,21 +47,28 @@ def upload_image():
     # 推理可选：装了 tensorflow/pillow 就自动识别入库，否则只存图
     result = _try_inference(path)
     if result:
-        if result['confidence'] < CONFIDENCE_THRESHOLD:
-            # 置信度不足：不写记录、不触发 APP 通知（文档 v1.4 §3.2）
-            return jsonify({'status': 'ok', 'saved': name,
-                            'msg': 'image saved (confidence %.1f%% < %.0f%%, not recorded)'
-                                   % (result['confidence'], CONFIDENCE_THRESHOLD),
+        verdict = classify_verdict(result['confidence'])
+        if verdict == 'confirmed':
+            conn = get_db_connection(); cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO disease_records (disease, confidence, location, timestamp, image_path, source) "
+                "VALUES (?, ?, ?, ?, ?, 'auto')",
+                (result['disease'], result['confidence'], 'ESP32-CAM',
+                 datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'uploads/' + name))
+            conn.commit(); conn.close()
+            return jsonify({'status': 'ok', 'saved': name, 'verdict': verdict,
                             'disease': result['disease'], 'confidence': result['confidence']})
-        conn = get_db_connection(); cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO disease_records (disease, confidence, location, timestamp, image_path, source) "
-            "VALUES (?, ?, ?, ?, ?, 'auto')",
-            (result['disease'], result['confidence'], 'ESP32-CAM',
-             datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'uploads/' + name))
-        conn.commit(); conn.close()
-        return jsonify({'status': 'ok', 'saved': name, 'disease': result['disease'],
-                        'confidence': result['confidence']})
+        if verdict == 'suspected':
+            # 疑似：不写记录、不触发通知，APP 提示建议重拍
+            return jsonify({'status': 'ok', 'saved': name, 'verdict': verdict,
+                            'msg': 'suspected (%.1f%% between %.0f%% and %.0f%%, not recorded; retake advised)'
+                                   % (result['confidence'], SUSPECTED_THRESHOLD, CONFIRMED_THRESHOLD),
+                            'disease': result['disease'], 'confidence': result['confidence']})
+        # 拒识：目标大概率不是有效叶片（或过于模糊），照实返回但不入库
+        return jsonify({'status': 'ok', 'saved': name, 'verdict': verdict,
+                        'msg': 'rejected (%.1f%% < %.0f%%, not a reliable leaf-disease match)'
+                               % (result['confidence'], SUSPECTED_THRESHOLD),
+                        'disease': result['disease'], 'confidence': result['confidence']})
     return jsonify({'status': 'ok', 'saved': name, 'msg': 'image saved (inference unavailable, see server console)'})
 
 def _try_inference(path):
@@ -110,6 +130,7 @@ def latest_upload():
     if info.get('disease'):
         resp['disease'] = info['disease']
         resp['confidence'] = info['confidence']
+        resp['verdict'] = classify_verdict(info['confidence'])
     return jsonify(resp)
 
 # {文件名: {'disease':..,'confidence':..}}，仅用于 /api/uploads/latest

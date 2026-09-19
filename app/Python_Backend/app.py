@@ -3,12 +3,16 @@ from flask import Flask, render_template,blueprints,jsonify,request
 from blueprints.history import history_bp
 from blueprints.disease import disease_bp
 from blueprints.capture import capture_bp
+from blueprints.sensor_api import sensor_bp
+from blueprints.ai import ai_bp
 
 app = Flask(__name__)
 
 app.register_blueprint(history_bp)
 app.register_blueprint(disease_bp)
 app.register_blueprint(capture_bp)
+app.register_blueprint(sensor_bp)
+app.register_blueprint(ai_bp)
 
 class Config:
     DEBUG = True

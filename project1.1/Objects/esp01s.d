@@ -30,6 +30,7 @@
 .\objects\esp01s.o: .\Library\stm32f10x_wwdg.h
 .\objects\esp01s.o: .\Library\misc.h
 .\objects\esp01s.o: D:\software\Keil_v5\ARM\ARMCC\Bin\..\include\stdbool.h
+.\objects\esp01s.o: Hardware\wifi_config_private.h
 .\objects\esp01s.o: .\System\Serial.h
 .\objects\esp01s.o: D:\software\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
 .\objects\esp01s.o: D:\software\Keil_v5\ARM\ARMCC\Bin\..\include\stdarg.h
