@@ -7,7 +7,7 @@
 #include <HTTPClient.h>
 #include "arduino_secrets.h"
 
-const char* SERVER_URL = "http://192.168.43.115:5000/api/upload_image";
+const char* SERVER_URL = "http://192.168.57.97:5000/api/upload_image";
 // 文档 v1.4：默认每 5 分钟拍一张（省电省流量），演示时可临时改小
 const uint32_t CAPTURE_INTERVAL_MS = 5UL * 60UL * 1000UL;
 const char* BOUNDARY = "----SmartFarmBoundary7d1a2c";

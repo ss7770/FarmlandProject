@@ -72,7 +72,13 @@ def _try_inference(path):
         inp = interp.get_input_details()[0]; out = interp.get_output_details()[0]
         interp.set_tensor(inp['index'], x); interp.invoke()
         y = interp.get_tensor(out['index'])[0].astype(np.float32)
-        e = np.exp(y - y.max()); prob = e / e.sum()          # softmax
+        # Keras 模型最后一层通常已带 softmax，输出总和≈1；
+        # 此时直接取 max 当置信度（二次 softmax 会把 90% 压成 ~6%）。
+        # 仅当输出是原始 logits（总和不等于 1）时才需要 softmax。
+        if abs(float(y.sum()) - 1.0) < 0.01:
+            prob = y
+        else:
+            e = np.exp(y - y.max()); prob = e / e.sum()
         idx = int(prob.argmax())
         return {'disease': labels[idx] if idx < len(labels) else str(idx),
                 'confidence': round(float(prob[idx]) * 100, 1)}

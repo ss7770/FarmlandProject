@@ -329,7 +329,7 @@ bool ESP01S_SendData(ESP01S_ID_t id, char *data, uint16_t len)
         Serial1_SendString("\r\n");
         
         //等待>提示符表示模块准备接收数据
-        if(!ESP01S_WaitAck(">", 3000))
+        if(!ESP01S_WaitAck(">", 500))
         {
             Serial2_Printf("[ESP01S] 等待>超时\r\n");
             retry++;
@@ -426,7 +426,7 @@ uint8_t ESP01S_GetConnectionStatus(void)
     ESP01S_ClearRxBuffer();
     Serial1_SendString("AT+CIPSTATUS\r\n");
     
-    if(ESP01S_WaitAck("OK", 500))
+    if(ESP01S_WaitAck("OK", 2000))
     {
         ESP01S_RX_BUF[ESP01S_RX_COUNT] = '\0';
         

@@ -36,7 +36,7 @@ public class DiseasePoller {
 
     private static final String TAG = "DiseasePoller";
     /** Flask 后端地址，部署时改成电脑局域网 IP（与 DiseaseActivity 保持一致） */
-    public static final String SERVER_BASE = "http://192.168.43.115:5000";
+    public static final String SERVER_BASE = "http://192.168.57.97:5000";
     /** 文档 v1.4：默认 30 秒轮询一次；演示时想更快可改小 */
     private static final long POLL_INTERVAL_MS = 30_000L;
     private static final String CHANNEL_ID = "disease_alert";
