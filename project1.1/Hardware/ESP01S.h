@@ -4,8 +4,8 @@
 #include <stdbool.h>
 
 //要连接的WiFi热点信息
-#define ESP01S_WIFI_SSID       "KA"//WiFi名称
-#define ESP01S_WIFI_PASSWORD   "KAITOOOO"//WiFi密码
+#define ESP01S_WIFI_SSID       "ka"//WiFi名称
+#define ESP01S_WIFI_PASSWORD   "kaito7777"//WiFi密码
 
 //ESP-01S服务器端口号
 #define ESP01S_SERVER_PORT     "8288"//服务器端口

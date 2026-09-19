@@ -510,7 +510,7 @@ public class DiseaseActivity extends AppCompatActivity {
             if (root.has("disease")) {
                 String label = root.optString("disease", "");
                 double confidence = root.optDouble("confidence", 0);
-                showRecordResult(label, confidence, false);
+                showRecordResult(label, confidence, true);
                 if (msg.contains("not recorded")) {
                     // 置信度低于 60% 阈值，服务端未入库：结果照常展示
                     tvStatus.setText("识别完成（置信度低于入库阈值，未写入巡检记录）");

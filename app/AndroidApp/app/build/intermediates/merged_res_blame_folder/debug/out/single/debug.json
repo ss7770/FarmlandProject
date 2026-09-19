@@ -24,12 +24,12 @@
         "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\mipmap-anydpi-v26\\ic_launcher_round.xml"
     },
     {
-        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\layout_dialog_threshold.xml.flat",
-        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\layout\\dialog_threshold.xml"
-    },
-    {
         "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\drawable_ic_temp.xml.flat",
         "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\drawable\\ic_temp.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\layout_dialog_threshold.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\layout\\dialog_threshold.xml"
     },
     {
         "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-hdpi_ic_launcher_round.webp.flat",
@@ -40,12 +40,12 @@
         "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\drawable\\ic_water.xml"
     },
     {
-        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\drawable_ic_launcher_background.xml.flat",
-        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\drawable\\ic_launcher_background.xml"
-    },
-    {
         "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\drawable_ic_humi.xml.flat",
         "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\drawable\\ic_humi.xml"
+    },
+    {
+        "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\drawable_ic_launcher_background.xml.flat",
+        "source": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\src\\main\\res\\drawable\\ic_launcher_background.xml"
     },
     {
         "merged": "D:\\Twilight\\FarmlandProject\\project1.0\\app\\AndroidApp\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-xxhdpi_ic_launcher.webp.flat",

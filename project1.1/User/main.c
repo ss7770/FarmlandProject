@@ -83,7 +83,6 @@ static int FormatSensorDataToString(SensorData_t *data, char *buffer, int buffer
 static void SendSensorDataToClient(void)
 {
     int dataLen;
-    uint8_t sendRetry = 0;
     uint8_t sendSuccess = 0;
 
     //如果没有客户端连接直接返回
@@ -101,19 +100,12 @@ static void SendSensorDataToClient(void)
         Serial2_Printf("[SEND] Ready to send data: %s\r\n", g_DataBuffer);
         
         //重试3次发送
-        for(sendRetry = 0; sendRetry < 3; sendRetry++)
+        for(uint8_t id = 0; id <= 4; id++)
         {
-            //多连接模式使用ID0发送
-            if(ESP01S_SendData(ESP01S_ID_0, g_DataBuffer, dataLen))
+            if(ESP01S_SendData((ESP01S_ID_t)id, g_DataBuffer, dataLen))
             {
                 sendSuccess = 1;
-                Serial2_Printf("[OK] Data sent successfully\r\n");
-                break;
-            }
-            else
-            {
-                Serial2_Printf("[RETRY] Send failed, attempt %d\r\n", sendRetry + 1);
-                Delay_ms(100);
+                Serial2_Printf("[OK] Data sent to ID %d\r\n", id);
             }
         }
         
