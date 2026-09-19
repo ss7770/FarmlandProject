@@ -1,0 +1,78 @@
+{
+  "trained_at": "2026-09-19 18:41:30",
+  "rows_total": 4292,
+  "rows_train": 3433,
+  "rows_test": 859,
+  "features": [
+    "soil_now",
+    "soil_5m",
+    "soil_10m",
+    "rate5",
+    "rate10",
+    "temp",
+    "humi",
+    "light",
+    "water",
+    "hour_f"
+  ],
+  "horizons": {
+    "30": {
+      "best_model": "GBDT",
+      "metrics": {
+        "RandomForest": {
+          "mae": 4.489,
+          "rmse": 8.557,
+          "r2": -0.1366
+        },
+        "GBDT": {
+          "mae": 4.266,
+          "rmse": 8.278,
+          "r2": -0.0639
+        }
+      },
+      "importance": {
+        "water": 0.1879,
+        "temp": 0.1795,
+        "hour_f": 0.1572,
+        "humi": 0.141,
+        "soil_now": 0.104,
+        "light": 0.086,
+        "rate10": 0.0834,
+        "soil_10m": 0.0589,
+        "soil_5m": 0.0021,
+        "rate5": 0.0
+      }
+    },
+    "60": {
+      "best_model": "RandomForest",
+      "metrics": {
+        "RandomForest": {
+          "mae": 5.78,
+          "rmse": 13.047,
+          "r2": -0.0271
+        },
+        "GBDT": {
+          "mae": 6.101,
+          "rmse": 13.018,
+          "r2": -0.0225
+        }
+      },
+      "importance": {
+        "water": 0.2037,
+        "temp": 0.1407,
+        "hour_f": 0.1214,
+        "humi": 0.1155,
+        "soil_now": 0.1132,
+        "rate10": 0.1083,
+        "light": 0.0965,
+        "soil_10m": 0.0946,
+        "soil_5m": 0.0051,
+        "rate5": 0.0009
+      }
+    }
+  },
+  "data_span": [
+    "2026-09-15 09:42:00",
+    "2026-09-18 09:13:00"
+  ]
+}

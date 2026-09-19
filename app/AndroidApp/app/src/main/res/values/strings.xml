@@ -29,6 +29,9 @@
     <string name="water_unit">ADC</string>
     <string name="disease_entry">图像识别看板</string>
     <string name="more_entry">更多（天气/图表/巡检记录）</string>
+    <string name="server_settings">服务器地址设置</string>
+    <string name="server_settings_hint">Flask 后端地址（电脑局域网 IP，形如 http://192.168.x.x:5000）</string>
+    <string name="server_settings_saved">服务器地址已保存</string>
 
     <!-- 更多看板 -->
     <string name="more_title">更多</string>

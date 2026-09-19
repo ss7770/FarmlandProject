@@ -55,6 +55,125 @@ static uint8_t g_CmdIndex = 0;//命令缓冲区索引
 //阈值变更后需要立即重新检查报警的标志
 static uint8_t g_NeedRecheckAlert = 0;
 
+/* ==================== 灌溉安全控制（P0 重构） ====================
+ * AI/APP 只有建议权，本层持有安全否决权：
+ * - 滞回控制：低于启动阈值开泵，达到停止阈值才关泵，消除抖动启停
+ * - 水位联锁：水位低于 waterMin 强制闭锁/停止水泵（防干转，最高优先级）
+ * - 最小运行时间：开泵后至少运行 minPumpRunTimeMs 才允许正常停止
+ * - 最长运行时间：超过 maxPumpRunTimeMs 强制停止（异常保护）
+ * - 最小停机间隔：两次灌溉之间至少间隔 minPumpStopTimeMs
+ */
+typedef enum
+{
+    IRR_STATE_IDLE = 0,    //待机：检查是否满足启动条件
+    IRR_STATE_RUNNING = 1  //灌溉中：检查停止/保护条件
+} IrrState_t;
+
+typedef struct
+{
+    uint16_t soilStartThreshold;    //土壤湿度低于此值(%)启动灌溉
+    uint16_t soilStopThreshold;     //土壤湿度达到此值(%)停止灌溉（滞回）
+    uint16_t waterMin;              //水位安全下限(ADC)，低于则闭锁水泵
+    uint32_t minPumpRunTimeMs;      //水泵最小运行时间
+    uint32_t maxPumpRunTimeMs;      //水泵最长连续运行时间
+    uint32_t minPumpStopTimeMs;     //两次灌溉最小停机间隔
+} IrrigationConfig_t;
+
+static IrrigationConfig_t g_IrrConfig = {
+    10,        //soilStartThreshold：默认低于10%启动（与原逻辑兼容，可被APP修改）
+    20,        //soilStopThreshold：默认达到20%停止（滞回，计划书承诺值）
+    1000,      //waterMin：水位低于1000(ADC)闭锁水泵（计划书承诺值）
+    30000,     //minPumpRunTimeMs：最少运行30秒
+    120000,    //maxPumpRunTimeMs：最长连续运行120秒
+    30000      //minPumpStopTimeMs：两次灌溉至少间隔30秒
+};
+static IrrState_t g_IrrState = IRR_STATE_IDLE;//灌溉状态机
+static uint32_t g_PumpStartTime = 0;//本次开泵时刻
+static uint32_t g_PumpLastStopTime = 0;//上次停泵时刻
+
+/**
+*@brief  灌溉安全控制任务（每200ms调用一次）
+*@param  无
+*@retval 无
+*/
+static void IrrigationControlTask(void)
+{
+    uint32_t now = Timer_GetTick();
+
+    switch(g_IrrState)
+    {
+        case IRR_STATE_IDLE://待机：泵必须保持断开
+            Relay_Control(0);
+
+            //水位联锁：水位不足时无条件闭锁启动
+            if(g_SensorData.waterLevel < g_IrrConfig.waterMin)
+            {
+                break;//闭锁中，什么都不做
+            }
+
+            //停机间隔保护：距上次停泵不足最间隔不允许启动
+            if((now - g_PumpLastStopTime) < g_IrrConfig.minPumpStopTimeMs)
+            {
+                break;
+            }
+
+            //滞回启动：土壤湿度低于启动阈值
+            if(g_SensorData.soilHumidity < g_IrrConfig.soilStartThreshold)
+            {
+                Relay_Control(1);
+                g_PumpStartTime = now;
+                g_IrrState = IRR_STATE_RUNNING;
+                Serial2_Printf("[PUMP] START - Soil:%d%% < %d%%, Water:%d\r\n",
+                    g_SensorData.soilHumidity, g_IrrConfig.soilStartThreshold,
+                    g_SensorData.waterLevel);
+            }
+            break;
+
+        case IRR_STATE_RUNNING://灌溉中
+            //最高优先级：运行中水位跌破安全值，立即停泵（干转保护）
+            if(g_SensorData.waterLevel < g_IrrConfig.waterMin)
+            {
+                Relay_Control(0);
+                g_PumpLastStopTime = now;
+                g_IrrState = IRR_STATE_IDLE;
+                Serial2_Printf("[PUMP] EMERGENCY STOP - Water:%d < %d (dry-run protection)\r\n",
+                    g_SensorData.waterLevel, g_IrrConfig.waterMin);
+                break;
+            }
+
+            //最长运行保护：超时强制停泵
+            if((now - g_PumpStartTime) >= g_IrrConfig.maxPumpRunTimeMs)
+            {
+                Relay_Control(0);
+                g_PumpLastStopTime = now;
+                g_IrrState = IRR_STATE_IDLE;
+                Serial2_Printf("[PUMP] STOP - max run time %dms reached\r\n",
+                    g_IrrConfig.maxPumpRunTimeMs);
+                break;
+            }
+
+            //正常停止：湿度达到停止阈值（滞回），且已满足最小运行时间
+            if(g_SensorData.soilHumidity >= g_IrrConfig.soilStopThreshold)
+            {
+                if((now - g_PumpStartTime) >= g_IrrConfig.minPumpRunTimeMs)
+                {
+                    Relay_Control(0);
+                    g_PumpLastStopTime = now;
+                    g_IrrState = IRR_STATE_IDLE;
+                    Serial2_Printf("[PUMP] STOP - Soil:%d%% >= %d%%\r\n",
+                        g_SensorData.soilHumidity, g_IrrConfig.soilStopThreshold);
+                }
+                //未满足最小运行时间则继续运行（计划书：最少运行30秒）
+            }
+            break;
+
+        default:
+            g_IrrState = IRR_STATE_IDLE;
+            break;
+    }
+}
+/* ==================== 灌溉安全控制结束 ==================== */
+
 /**
 *@brief  格式化传感器数据为字符串
 *@param  data 传感器数据指针
@@ -187,8 +306,23 @@ static void ParseThresholdCommand(char *cmd)
             }
             else if(strcmp(key, "SOIL") == 0)
             {
-                //土壤湿度阈值用于继电器控制，蜂鸣器不使用此阈值
-                Serial2_Printf("[CMD] Soil threshold set to: %d%% (for relay control)\r\n", value);
+                //土壤湿度阈值：真正写入灌溉配置并参与水泵控制
+                if(value >= 1 && value <= 90)
+                {
+                    g_IrrConfig.soilStartThreshold = (uint16_t)value;
+                    //滞回：停止阈值自动设为启动阈值+10，保证有迟滞区间
+                    g_IrrConfig.soilStopThreshold = (uint16_t)(value + 10);
+                    if(g_IrrConfig.soilStopThreshold > 100)
+                    {
+                        g_IrrConfig.soilStopThreshold = 100;
+                    }
+                    Serial2_Printf("[CMD] Soil start threshold: %d%%, stop(hysteresis): %d%%\r\n",
+                        g_IrrConfig.soilStartThreshold, g_IrrConfig.soilStopThreshold);
+                }
+                else
+                {
+                    Serial2_Printf("[CMD] Soil threshold %d out of range(1-90), rejected\r\n", value);
+                }
             }
             else if(strcmp(key, "WATER") == 0)
             {
@@ -213,8 +347,11 @@ static void ParseThresholdCommand(char *cmd)
 
     //打印所有当前阈值，便于调试确认蜂鸣器使用的阈值已更新
     Serial2_Printf("[CMD] Current thresholds - Temp:%d°C, Humi:%d%%, Light:%dLux, Water:%dADC (alarm when water < %d)\r\n",
-        Buzzer_GetTempThreshold(), Buzzer_GetHumiThreshold(), 
+        Buzzer_GetTempThreshold(), Buzzer_GetHumiThreshold(),
         Buzzer_GetLightThreshold(), Buzzer_GetWaterThreshold(), Buzzer_GetWaterThreshold());
+    Serial2_Printf("[CMD] Irrigation config - SoilStart:%d%%, SoilStop:%d%%, WaterMin:%d, MinRun:%dms, MaxRun:%dms, MinStop:%dms\r\n",
+        g_IrrConfig.soilStartThreshold, g_IrrConfig.soilStopThreshold, g_IrrConfig.waterMin,
+        g_IrrConfig.minPumpRunTimeMs, g_IrrConfig.maxPumpRunTimeMs, g_IrrConfig.minPumpStopTimeMs);
 
     //阈值发生变化，立即重新检查报警状态
     if(thresholdChanged)
@@ -646,16 +783,9 @@ int main(void)
             //检查报警状态并控制蜂鸣器（使用当前已更新的阈值）
             CheckAndControlAlert();
             
-            //根据土壤湿度控制继电器（低于10%时启动水泵）
-            if(g_SensorData.soilHumidity < 10)
-            {
-                Relay_Control(1);//吸合继电器，启动水泵
-            }
-            else
-            {
-                Relay_Control(0);//断开继电器，关闭水泵
-            }
-            
+            //灌溉安全控制（滞回+水位联锁+启停保护，替代旧的 soil<10 直控）
+            IrrigationControlTask();
+
             OLED_UpdateDisplay();
         }
 

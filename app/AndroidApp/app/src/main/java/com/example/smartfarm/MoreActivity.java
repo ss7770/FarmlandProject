@@ -30,7 +30,7 @@ public class MoreActivity extends AppCompatActivity {
 
         // 链接（如“历史数据”）留在本页打开，不弹外部浏览器
         webMore.setWebViewClient(new WebViewClient());
-        webMore.loadUrl(DiseasePoller.SERVER_BASE + "/");
+        webMore.loadUrl(ServerConfig.get(this) + "/");
     }
 
     /** WebView 有历史记录时，返回键先回退网页而不是退出页面 */

@@ -3,9 +3,10 @@
 #include "stm32f10x.h"
 #include <stdbool.h>
 
-//要连接的WiFi热点信息
-#define ESP01S_WIFI_SSID       "ka"//WiFi名称
-#define ESP01S_WIFI_PASSWORD   "kaito7777"//WiFi密码
+//要连接的WiFi热点信息（真实配置已外置，不提交到 Git 仓库）
+//使用方法：复制同目录 wifi_config_private_template.h 改名为 wifi_config_private.h，
+//填入自己的热点信息。本文件内不再保留任何真实密码。
+#include "wifi_config_private.h"
 
 //ESP-01S服务器端口号
 #define ESP01S_SERVER_PORT     "8288"//服务器端口
