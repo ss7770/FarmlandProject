@@ -1,25 +1,17 @@
 import os
 from flask import Blueprint, request, jsonify, send_from_directory
 from datetime import datetime
-from utils.db import get_db_connection
+from utils.db import get_db_connection, insert_disease_record
+# 识别内核与三档阈值集中放在 utils/inference.py，与 D200 摄像头链路共用
+from utils.inference import (try_inference, classify_verdict, describe_result,
+                             CONFIRMED_THRESHOLD, SUSPECTED_THRESHOLD)
 
 capture_bp = Blueprint('capture', __name__, url_prefix='/api')
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'uploads')
-# 文档 v2.2 §4.4 拒识机制（三档置信度，P2）：
-#   >= CONFIRMED_THRESHOLD   确诊：写入 disease_records，APP 通知
-#   >= SUSPECTED_THRESHOLD   疑似：不入库，APP 提示"疑似 + 建议重拍"
-#   <  SUSPECTED_THRESHOLD   拒识：不入库，APP 提示"无法可靠识别，请对准叶片重拍"
-CONFIRMED_THRESHOLD = 75.0
-SUSPECTED_THRESHOLD = 45.0
 
+# 兼容旧调用名（历史代码/测试脚本用过 _try_inference）
+_try_inference = try_inference
 
-def classify_verdict(confidence):
-    """confidence 为 0~100 百分数，返回 confirmed / suspected / rejected"""
-    if confidence >= CONFIRMED_THRESHOLD:
-        return 'confirmed'
-    if confidence >= SUSPECTED_THRESHOLD:
-        return 'suspected'
-    return 'rejected'
 
 def _ensure_columns():
     conn = get_db_connection(); cur = conn.cursor()
@@ -45,67 +37,21 @@ def upload_image():
     file.save(path)
 
     # 推理可选：装了 tensorflow/pillow 就自动识别入库，否则只存图
-    result = _try_inference(path)
+    result = try_inference(path)
     if result:
-        verdict = classify_verdict(result['confidence'])
-        if verdict == 'confirmed':
-            conn = get_db_connection(); cur = conn.cursor()
-            cur.execute(
-                "INSERT INTO disease_records (disease, confidence, location, timestamp, image_path, source) "
-                "VALUES (?, ?, ?, ?, ?, 'auto')",
-                (result['disease'], result['confidence'], 'ESP32-CAM',
-                 datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'uploads/' + name))
-            conn.commit(); conn.close()
-            return jsonify({'status': 'ok', 'saved': name, 'verdict': verdict,
-                            'disease': result['disease'], 'confidence': result['confidence']})
-        if verdict == 'suspected':
-            # 疑似：不写记录、不触发通知，APP 提示建议重拍
-            return jsonify({'status': 'ok', 'saved': name, 'verdict': verdict,
-                            'msg': 'suspected (%.1f%% between %.0f%% and %.0f%%, not recorded; retake advised)'
-                                   % (result['confidence'], SUSPECTED_THRESHOLD, CONFIRMED_THRESHOLD),
-                            'disease': result['disease'], 'confidence': result['confidence']})
-        # 拒识：目标大概率不是有效叶片（或过于模糊），照实返回但不入库
-        return jsonify({'status': 'ok', 'saved': name, 'verdict': verdict,
-                        'msg': 'rejected (%.1f%% < %.0f%%, not a reliable leaf-disease match)'
-                               % (result['confidence'], SUSPECTED_THRESHOLD),
-                        'disease': result['disease'], 'confidence': result['confidence']})
-    return jsonify({'status': 'ok', 'saved': name, 'msg': 'image saved (inference unavailable, see server console)'})
-
-def _try_inference(path):
-    """复用 AI_Model/model.tflite 做服务端推理；缺库或出错则返回 None 优雅降级"""
-    try:
-        import numpy as np
-        from PIL import Image
-        # 模型在 app/AI_Model/：uploads -> Python_Backend -> app
-        model_path = os.path.abspath(os.path.join(UPLOAD_DIR, '..', '..', 'AI_Model', 'model.tflite'))
-        labels_path = os.path.abspath(os.path.join(UPLOAD_DIR, '..', '..', 'AI_Model', 'labels.txt'))
-        try:
-            import tflite_runtime.interpreter as tfl
-            interp = tfl.Interpreter(model_path=model_path)
-        except ImportError:
-            import tensorflow as tf
-            interp = tf.lite.Interpreter(model_path=model_path)
-        labels = [l.strip() for l in open(labels_path, encoding='utf-8') if l.strip()]
-        img = Image.open(path).convert('RGB').resize((224, 224))
-        x = (np.asarray(img, dtype=np.float32) / 255.0)[None, ...]
-        interp.allocate_tensors()
-        inp = interp.get_input_details()[0]; out = interp.get_output_details()[0]
-        interp.set_tensor(inp['index'], x); interp.invoke()
-        y = interp.get_tensor(out['index'])[0].astype(np.float32)
-        # Keras 模型最后一层通常已带 softmax，输出总和≈1；
-        # 此时直接取 max 当置信度（二次 softmax 会把 90% 压成 ~6%）。
-        # 仅当输出是原始 logits（总和不等于 1）时才需要 softmax。
-        if abs(float(y.sum()) - 1.0) < 0.01:
-            prob = y
+        resp = {'status': 'ok', 'saved': name}
+        resp.update(describe_result(result))
+        if resp['verdict'] == 'confirmed':
+            insert_disease_record(result['disease'], result['confidence'],
+                                  location='ESP32-CAM', image_path='uploads/' + name,
+                                  source='auto')
         else:
-            e = np.exp(y - y.max()); prob = e / e.sum()
-        idx = int(prob.argmax())
-        return {'disease': labels[idx] if idx < len(labels) else str(idx),
-                'confidence': round(float(prob[idx]) * 100, 1)}
-    except Exception:
-        import traceback
-        traceback.print_exc()   # 别把真实错误吞掉，打到控制台方便排查
-        return None
+            # 疑似 / 拒识：不写记录、不触发 APP 通知，只回结论供 APP 提示重拍
+            resp['msg'] = ('%s (%.1f%%, thresholds: suspected>=%.0f, confirmed>=%.0f, not recorded)'
+                           % (resp['verdict'], result['confidence'],
+                              SUSPECTED_THRESHOLD, CONFIRMED_THRESHOLD))
+        return jsonify(resp)
+    return jsonify({'status': 'ok', 'saved': name, 'msg': 'image saved (inference unavailable, see server console)'})
 
 @capture_bp.route('/uploads/latest')
 def latest_upload():
@@ -118,19 +64,19 @@ def latest_upload():
              if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
     if not files:
         return jsonify({'status': 'empty'})
-    files.sort(reverse=True)
+    # 按修改时间排序（不是文件名字典序）：D200 巡检帧 d200_*.jpg 与手动上传 cap_*.jpg
+    # 前缀不同，字典序会让"最近拍摄"取错图
+    files.sort(key=lambda f: os.path.getmtime(os.path.join(UPLOAD_DIR, f)), reverse=True)
     name = files[0]
 
     info = _latest_inference_cache.get(name)
     if info is None:
-        info = _try_inference(os.path.join(UPLOAD_DIR, name)) or {}
+        info = try_inference(os.path.join(UPLOAD_DIR, name)) or {}
         _latest_inference_cache[name] = info
 
     resp = {'status': 'ok', 'name': name, 'url': '/api/uploads/' + name}
     if info.get('disease'):
-        resp['disease'] = info['disease']
-        resp['confidence'] = info['confidence']
-        resp['verdict'] = classify_verdict(info['confidence'])
+        resp.update(describe_result(info))
     return jsonify(resp)
 
 # {文件名: {'disease':..,'confidence':..}}，仅用于 /api/uploads/latest

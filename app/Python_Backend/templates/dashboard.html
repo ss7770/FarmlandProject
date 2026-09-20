@@ -32,6 +32,8 @@
         </div>
         <div class="weather">
             <h4>今日天气 & 灌溉建议</h4>
+            {# 可用性看显式 ok/error 标记：Java /api/weather 成功响应里本来就带 reason（灌溉建议文案） #}
+            {% if weather and weather.get('ok', True) and not weather.get('error') %}
             <div id="weather-header">
                 <span class="weather-icon">{{ weather.weather | weather_icon }}</span>
                 <span class="weather-desc">{{ weather.weather }}</span>
@@ -44,7 +46,28 @@
             </div>
             <div class="weather-advice">
                 灌溉建议：{{ weather.reason }}
+            </div>
+            {% else %}
+            <div class="weather-advice">
+                天气服务不可用{% if weather and weather.get('error') %}（{{ weather.error }}）{% endif %}，
+                请先启动 Java 天气服务（默认 http://127.0.0.1:8080/api/weather）
+            </div>
+            {% endif %}
         </div>
+        <div class="camera-panel">
+            <h4>AI 摄像头巡检（D200）</h4>
+            <div class="camera-head">
+                <span id="camera-status" class="camera-status">连接中…</span>
+                <span id="camera-meta" class="camera-meta"></span>
+            </div>
+            <div class="camera-view">
+                <img id="camera-stream" src="/api/camera/stream" alt="D200 实时画面">
+            </div>
+            <div class="camera-actions">
+                <button id="btn-capture" class="btn-capture">立即抓拍识别</button>
+                <span class="camera-hint">每 5 分钟自动巡检一次；确诊（≥75%）自动写入巡检记录并推送 APP</span>
+            </div>
+            <div id="camera-result" class="camera-result">加载中…</div>
         </div>
         <div class="ai-panel">
             <h4>AI 灌溉决策引擎</h4>

@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, jsonify
 
 from ai import soil_predictor
-from utils import fetch_weather
+from utils import fetch_weather, weather_available
 from utils.db import get_db_connection
 from utils.sensor import fetch_lastest_data
 
@@ -55,10 +55,12 @@ def _build_recommendation(forecast, weather, disease):
         reasons.append('注意：传感器数据已陈旧（最后上报 %s），建议检查数据链路'
                        % forecast.get('last_ts', '?'))
     if forecast.get('method') == 'linear_fallback':
-        reasons.append('墒情预测退化为线性外推（模型未就绪或历史不足）')
+        reasons.append('墒情预测退化为线性外推（模型未就绪、历史不足或模型域外推）')
     else:
         reasons.append('模型预测未来 30/60 分钟土壤湿度为 %.1f%% / %.1f%%'
                        % (pred30, pred60))
+    if forecast.get('note'):
+        reasons.append(forecast['note'])
 
     risk = '低'
     if worst < 8:
@@ -75,7 +77,9 @@ def _build_recommendation(forecast, weather, disease):
         reasons.append('墒情在安全区间，暂无需灌溉')
 
     # 天气融合：预报有降雨 → 建议暂缓，靠降雨自然补水
-    if isinstance(weather, dict) and 'reason' not in weather:
+    # 注意：判可用性必须用 weather_available()，不能用 'reason' 字段
+    # （Java /api/weather 成功响应里就带 'reason'，那是灌溉建议文案）
+    if weather_available(weather):
         desc = str(weather.get('weather', ''))
         rain = weather.get('rain24h')
         if '雨' in desc or (isinstance(rain, (int, float)) and rain and rain > 0):
@@ -85,8 +89,14 @@ def _build_recommendation(forecast, weather, disease):
                 should_irrigate = False
             else:
                 reasons.append('预报 %s，未来墒情有望自然补充' % desc)
+        else:
+            reasons.append('天气：%s %.0f℃，未来 24h 无明显降雨，暂不依赖降雨补水'
+                           % (desc or '未知', float(weather.get('temperature') or 0)))
     else:
-        reasons.append('天气服务不可用，本建议未纳入天气因素')
+        detail = ''
+        if isinstance(weather, dict) and weather.get('error'):
+            detail = '（%s）' % weather.get('error')
+        reasons.append('天气服务不可用%s，本建议未纳入天气因素' % detail)
 
     # 病害融合：检出病害 → 提示避免叶面喷灌类操作
     if disease and not str(disease.get('disease', '')).endswith('healthy'):
