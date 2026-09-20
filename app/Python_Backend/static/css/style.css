@@ -260,6 +260,120 @@ body{
     line-height: 1.6;
 }
 
+/* ===== D200 摄像头巡检面板 ===== */
+.camera-panel{
+    background-color: #fff;
+    padding: 32px 26px;
+    border-radius: 5px;
+    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.16);
+    margin-top: 20px;
+}
+
+.camera-panel h4{
+    color: #555555;
+    font-size: 24px;
+    margin-bottom: 14px;
+}
+
+.camera-head{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.camera-status{
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #fff;
+    background: #999999;
+}
+
+.camera-status.online{ background: #5cb85c; }
+.camera-status.offline{ background: #d9534f; }
+
+.camera-meta{
+    font-size: 13px;
+    color: #999999;
+    margin-left: auto;
+}
+
+.camera-view{
+    width: 100%;
+    background: #f0f2f0;
+    border-radius: 5px;
+    overflow: hidden;
+    line-height: 0;
+}
+
+.camera-view img{
+    width: 100%;
+    max-height: 340px;
+    object-fit: contain;
+    display: block;
+}
+
+.camera-actions{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.btn-capture{
+    background: #5cb85c;
+    color: #fff;
+    font-size: 15px;
+    cursor: pointer;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 5px;
+}
+
+.btn-capture:disabled{
+    background: #b5d9b5;
+    cursor: default;
+}
+
+.camera-hint{
+    font-size: 13px;
+    color: #999999;
+}
+
+.camera-result{
+    margin-top: 14px;
+    background-color: #f8faf8;
+    padding: 10px 12px;
+    border-radius: 5px;
+    font-size: 15px;
+    color: #555555;
+    line-height: 1.8;
+}
+
+.verdict-badge{
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 13px;
+    color: #fff;
+    margin-right: 8px;
+}
+
+.verdict-confirmed{ background: #d9534f; }
+.verdict-suspected{ background: #f0ad4e; }
+.verdict-rejected{ background: #999999; }
+
+.camera-result img{
+    width: 90px;
+    vertical-align: middle;
+    border-radius: 4px;
+    margin-left: 8px;
+}
+
 /* 病害巡检记录面板（复用天气卡片风格） */
 .disease-panel{
     background-color: #fff;

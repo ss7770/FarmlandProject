@@ -5,6 +5,7 @@ from blueprints.disease import disease_bp
 from blueprints.capture import capture_bp
 from blueprints.sensor_api import sensor_bp
 from blueprints.ai import ai_bp
+from blueprints.camera import camera_bp
 
 app = Flask(__name__)
 
@@ -13,12 +14,32 @@ app.register_blueprint(disease_bp)
 app.register_blueprint(capture_bp)
 app.register_blueprint(sensor_bp)
 app.register_blueprint(ai_bp)
+app.register_blueprint(camera_bp)
 
 class Config:
     DEBUG = True
     SECRET_KEY = 'my-secret-key'
 
 app.config.from_object(Config)
+
+_camera_booted = False
+
+@app.before_request
+def _boot_camera_once():
+    """第一次有请求进来时启动 D200 拉流 + 自动巡检线程。
+
+    放在这里而不是 import 期：Flask debug 模式的重载器会让模块在父子两个进程各导入一次，
+    在 import 期起线程会导致两个进程同时连 D200（固件并发≈1，会互相挤掉）。
+    请求只会由真正对外服务的那个进程处理，因此这里天然只启动一次。
+    """
+    global _camera_booted
+    if not _camera_booted:
+        _camera_booted = True
+        try:
+            from blueprints.camera import init_camera
+            init_camera()
+        except Exception as e:
+            print('[D200] 摄像头初始化失败（不影响其他接口）：%s: %s' % (type(e).__name__, e))
 
 @app.route('/history')
 def history():

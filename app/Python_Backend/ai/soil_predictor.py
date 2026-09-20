@@ -94,16 +94,42 @@ def predict_from_db():
             from ai.features import FEATURES, build_inference_row
             row = build_inference_row(rows)
             x = [[row[f] for f in FEATURES]]
+            soil_now = round(row['soil_now'], 2)
+            preds = {}
+            for h, model in bundle['models'].items():
+                preds[int(h)] = float(np.clip(model.predict(x)[0], 0, 100))
+
+            # 合理性护栏：模型只能在其训练数据域内可信。若训练集土壤湿度是 30~60%
+            # （虚拟数据），而现场真实读数是 0%，树模型会落在"训练均值"附近，吐出
+            # 与当前读数毫无因果关系的 59% —— 这种越界外推必须降级，否则看板会出现
+            # "当前 0.0% / 预测 +30min 59.1%" 的自相矛盾展示。
+            # 允许的变化率上限：30 分钟最多 +15% / -6%（按小时折算）。
+            out_of_domain = False
+            for h, v in preds.items():
+                limit = (0.5 * h) if v > soil_now else (0.2 * h)
+                if abs(v - soil_now) > limit:
+                    out_of_domain = True
+                    break
+            if out_of_domain:
+                fb = _linear_fallback(rows)
+                fb['stale'] = stale
+                fb['last_ts'] = rows[-1][1] if rows else ''
+                fb['fallback_reason'] = (
+                    'model prediction %.1f%% deviates from current %.1f%% '
+                    'beyond plausible rate' % (max(preds.values()), soil_now))
+                fb['note'] = ('模型在训练数据域外（当前湿度 %.1f%% 未出现在训练集中），'
+                              '已改用线性外推，建议用真实传感器数据重训' % soil_now)
+                return fb
+
             out = {'method': 'model',
                    'stale': stale,
                    'last_ts': rows[-1][1],
-                   'soil_now': round(row['soil_now'], 2),
+                   'soil_now': soil_now,
                    'rate_per_min': round(row['rate5'], 4),
                    'model': bundle['meta'].get('horizons', {}).get('30', {}).get('best_model', 'unknown'),
                    'trained_at': bundle['meta'].get('trained_at', '')}
-            for h, model in bundle['models'].items():
-                pred = float(np.clip(model.predict(x)[0], 0, 100))
-                out['soil_%d' % int(h)] = round(pred, 2)
+            for h, v in preds.items():
+                out['soil_%d' % h] = round(v, 2)
             return out
         except Exception as e:
             # 特征不足（如刚启动数据太稀）→ 线性兜底
