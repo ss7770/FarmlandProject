@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 白容器渐变（2026-10-07 方案甲·整卡对角渐变，白多色少：0% → 中点 0% → 右下 30%）。
+     给非传感器白容器（设备概览 / 设备控制 / 灌溉统计 / 环境舒适度）的内层 LinearLayout 挂。
+     ⚠️ 浓度比传感器瓷砖低（30% vs 50%）：这些白卡面积大得多，同浓度会显闷。
+     ⚠️ 渐变层圆角必须等于 MaterialCardView 的 cardCornerRadius 20dp。
+     ⚠️ start / center / end 同色相（3DBE7B），只变 alpha —— 避免中途发灰。 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/colorCard" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="20dp" />
+            <gradient
+                android:angle="315"
+                android:startColor="#003DBE7B"
+                android:centerColor="#003DBE7B"
+                android:endColor="#4D3DBE7B"
+                android:type="linear" />
+        </shape>
+    </item>
+</layer-list>

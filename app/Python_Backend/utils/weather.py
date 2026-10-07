@@ -45,8 +45,14 @@ def _fetch_remote():
     # timeout 收紧到 2 秒：天气服务不可达（尤其是端口被防火墙丢包、表现为挂起）时，
     # 不能把 /api/ai/recommendation 和看板首屏拖住；最坏 2 次×2s + 0.5s ≈ 4.5s，
     # 且失败结果有 60 秒缓存，不会每分钟都卡
+    #
+    # ⚠️ proxies={'http': None, 'https': None} 不是可有可无的：
+    # requests 默认会读环境变量 http_proxy/https_proxy。开发机/沙箱里常挂着全局代理，
+    # 一旦挂上，连 127.0.0.1 的本机请求也会被丢进代理 → 表现为连接超时，
+    # 于是"天气服务明明起着却报连不上"。本机回环地址必须绕过代理。
     try:
-        response = requests.get(config.WEATHER_API_URL, timeout=2)
+        response = requests.get(config.WEATHER_API_URL, timeout=2,
+                                proxies={'http': None, 'https': None})
         if response.status_code == 200:
             data = response.json()
             if isinstance(data, dict):

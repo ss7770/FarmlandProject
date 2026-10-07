@@ -55,9 +55,9 @@ function loadData() {
                     smooth: true,
                     symbol: 'circle',
                     symbolSize: 6,
-                    lineStyle: { color: '#5cb85c', width: 2 },
-                    itemStyle: { color: '#fff', borderColor: '#5cb85c', borderWidth: 2 },
-                    areaStyle: { color: 'rgba(92, 184, 92, 0.2)' }
+                    lineStyle: { color: '#3dbe7b', width: 2 },
+                    itemStyle: { color: '#fff', borderColor: '#3dbe7b', borderWidth: 2 },
+                    areaStyle: { color: 'rgba(61, 190, 123, 0.2)' }
                 }],
                 tooltip: {
                     trigger: 'axis',

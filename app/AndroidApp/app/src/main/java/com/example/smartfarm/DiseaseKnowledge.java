@@ -5,10 +5,14 @@ import java.util.Map;
 
 /**
  * PlantVillage 38 类病害知识库（中文名 + 防治建议）。
- * 标签顺序与 assets/labels.txt 行序一致，标签文本须与模型输出类别一一对应。
+ * 标签顺序与后端模型 / K230 的 labels.txt 行序一致，标签文本须与模型输出类别一一对应。
  *
  * 模型来源：Rishit-dagli/Greenathon-Plant-AI v0.1.0（Apache 2.0）
  * 输入：224x224x3，像素归一化到 [0,1]；输出：38 维 logits，取 argmax 得类别索引。
+ *
+ * 用途（2026-10-01 起）：APP 端只做「英文标签 → 中文名/建议」的翻译，
+ * 供病害巡检通知与 TTS 播报使用；识别本身已全部交给后端 / K230，
+ * 本地 TFLite 推理（DiseaseDetector）随原生病害识别页一并删除。
  */
 public final class DiseaseKnowledge {
 

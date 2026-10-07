@@ -2,23 +2,36 @@ package com.example.smartfarm;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 
-public class MainActivity extends AppCompatActivity {
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+
+/**
+ * 主界面（2026-10-05 起改造为「底部 Tab 宿主」）。
+ *
+ * <p>结构：FragmentContainerView + BottomNavigationView，四个 Tab —— 首页 / 数据 / 病害 / 设置。
+ * 其中「数据」「病害」是 WebView 直接加载 Flask 页面（见 {@link WebTabFragment}），
+ * 「首页」「设置」是原生 Fragment。
+ *
+ * <p>⚠️ 关键设计：TCP 连接、断线自动重连、心跳看门狗、病害轮询、阈值命令**全部留在这里**，
+ * 因为它们的生命周期必须跨越 Tab 切换。Fragment 只通过 {@link DeviceHost} 拿数据。
+ * 切 Tab 用 hide/show（不是 replace），否则 WebView 会被销毁导致每次切页都白屏重载。
+ */
+public class MainActivity extends AppCompatActivity implements DeviceHost {
+
     private static final String TAG = "MainActivity";
 
     /** 断线自动重连间隔（毫秒） */
@@ -28,9 +41,13 @@ public class MainActivity extends AppCompatActivity {
     /** 看板轮询周期 */
     private static final long WATCHDOG_PERIOD_MS = 5000L;
 
-    private EditText etIp, etPort;
-    private Button btnConnect, btnThreshold, btnDisease, btnMore, btnServer;
-    private TextView tvStatus, tvTempValue, tvHumiValue, tvLightValue, tvSoilValue, tvWaterValue;
+    /** FragmentManager 里四个 Tab 的 tag */
+    private static final String TAG_HOME = "tab_home";
+    private static final String TAG_DATA = "tab_data";
+    private static final String TAG_DISEASE = "tab_disease";
+    private static final String TAG_SETTINGS = "tab_settings";
+
+    private BottomNavigationView bottomNav;
 
     private TcpClient tcpClient;
     private boolean isConnected = false;
@@ -41,6 +58,14 @@ public class MainActivity extends AppCompatActivity {
     /** 最近一次收到传感器数据的时刻（elapsedRealtime），用于心跳判活 */
     private long lastDataTime;
 
+    /** 最近一帧数据：切回首页时回放，避免数值变回 "--" */
+    private SensorData lastSensorData;
+    /** 首页注册的监听者；首页不可见时为 null */
+    private DeviceHost.SensorListener sensorListener;
+    /** 当前连接状态文案与颜色（供回放） */
+    private String connText;
+    private int connColorRes = R.color.colorError;
+
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     /** 自动重连任务 */
     private final Runnable reconnectRunnable = new Runnable() {
@@ -48,8 +73,7 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             if (!userRequestedConnect || isConnected) return;
             Log.i(TAG, "auto-reconnecting to " + lastIp + ":" + lastPort);
-            tvStatus.setText(R.string.connecting);
-            tvStatus.setTextColor(getResources().getColor(R.color.colorWarning));
+            notifyState(false, getString(R.string.connecting), R.color.colorWarning);
             connectInternal();
         }
     };
@@ -70,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    /** 病害巡检轮询器（文档 v1.4）：30 秒轮询后端，新病害弹通知 + TTS 播报 */
+    /** 病害巡检轮询器（30 秒轮询后端，新病害弹通知 + TTS 播报） */
     private DiseasePoller diseasePoller;
 
     private int tempThreshold = 30;
@@ -83,8 +107,53 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        initViews();
-        setupListeners();
+        // 标题固定「慧耕沃野」：Fragment 里一律不要再改标题
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setTitle(R.string.app_title);
+        }
+
+        lastIp = DevicePrefs.getIp(this);
+        lastPort = DevicePrefs.getPort(this);
+
+        bottomNav = findViewById(R.id.bottom_nav);
+        bottomNav.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(MenuItem item) {
+                showTab(item.getItemId());
+                return true;
+            }
+        });
+
+        if (savedInstanceState == null) {
+            // 四个 Fragment 一次建好：网页 Tab 此时只建壳，不加载 URL（首次可见才加载）
+            Fragment home = new HomeFragment();
+            Fragment data = WebTabFragment.newInstance(WebTabFragment.PATH_DATA);
+            Fragment disease = WebTabFragment.newInstance(WebTabFragment.PATH_DISEASE);
+            Fragment settings = new SettingsFragment();
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.fragment_container, home, TAG_HOME)
+                    .add(R.id.fragment_container, data, TAG_DATA).hide(data)
+                    .add(R.id.fragment_container, disease, TAG_DISEASE).hide(disease)
+                    .add(R.id.fragment_container, settings, TAG_SETTINGS).hide(settings)
+                    .commitNow();
+
+            // 首次进入：触发一次选中 + 显式显示首页（showTab 幂等，双保险）
+            bottomNav.setSelectedItemId(R.id.nav_home);
+            showTab(R.id.nav_home);
+        } else {
+            // 重建（切换深色模式等）：BottomNavigationView 会自己恢复上次选中的 Tab，
+            // 这里按它当前的值把 show/hide 落回正确状态——否则切完主题会被弹回首页。
+            showTab(bottomNav.getSelectedItemId());
+        }
+
+        // 重建后恢复连接意图：切主题/旋屏导致 Activity 重建会断开 TCP，
+        // 上次"连着"的话这里自动重连一次，不用用户手动点（2026-10-06）。
+        if (savedInstanceState != null && AppPrefs.wasConnected(this)) {
+            userRequestedConnect = true;
+            mainHandler.postDelayed(watchdogRunnable, WATCHDOG_PERIOD_MS);
+            notifyState(false, getString(R.string.connecting), R.color.colorWarning);
+            connectInternal();
+        }
 
         diseasePoller = new DiseasePoller(this, new DiseasePoller.Listener() {
             @Override
@@ -96,125 +165,105 @@ public class MainActivity extends AppCompatActivity {
         diseasePoller.start();
     }
 
-    private void initViews() {
-        etIp = findViewById(R.id.et_ip);
-        etPort = findViewById(R.id.et_port);
-        btnConnect = findViewById(R.id.btn_connect);
-        btnThreshold = findViewById(R.id.btn_threshold);
-        btnDisease = findViewById(R.id.btn_disease);
-        btnMore = findViewById(R.id.btn_more);
-        btnServer = findViewById(R.id.btn_server);
-        tvStatus = findViewById(R.id.tv_status);
-        tvTempValue = findViewById(R.id.tv_temp_value);
-        tvHumiValue = findViewById(R.id.tv_humi_value);
-        tvLightValue = findViewById(R.id.tv_light_value);
-        tvSoilValue = findViewById(R.id.tv_soil_value);
-        tvWaterValue = findViewById(R.id.tv_water_value);
+    /** 切 Tab：hide 掉其他三个，show 目标（不 replace，保住 WebView 实例） */
+    private void showTab(int itemId) {
+        String target;
+        if (itemId == R.id.nav_data) {
+            target = TAG_DATA;
+        } else if (itemId == R.id.nav_disease) {
+            target = TAG_DISEASE;
+        } else if (itemId == R.id.nav_settings) {
+            target = TAG_SETTINGS;
+        } else {
+            target = TAG_HOME;
+        }
+
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        for (String tag : new String[]{TAG_HOME, TAG_DATA, TAG_DISEASE, TAG_SETTINGS}) {
+            Fragment f = getSupportFragmentManager().findFragmentByTag(tag);
+            if (f == null) continue;
+            if (tag.equals(target)) {
+                ft.show(f);
+            } else {
+                ft.hide(f);
+            }
+        }
+        ft.commit();
     }
 
-    private void setupListeners() {
-        btnConnect.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (isConnected) {
-                    disconnect();
-                } else {
-                    connect();
-                }
-            }
-        });
+    // ==================== DeviceHost 实现 ====================
 
-        btnThreshold.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showThresholdDialog();
-            }
-        });
-
-        btnDisease.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivity(new Intent(MainActivity.this, DiseaseActivity.class));
-            }
-        });
-
-        // “更多”看板入口：WebView 打开 Flask 端 dashboard（天气/图表/巡检记录）
-        btnMore.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivity(new Intent(MainActivity.this, MoreActivity.class));
-            }
-        });
-
-        // 服务器地址设置：换网络环境后在此修改 Flask 地址，无需改代码重新编译
-        btnServer.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showServerDialog();
-            }
-        });
+    @Override
+    public boolean isConnected() {
+        return isConnected;
     }
 
-    /** 弹窗修改 Flask 服务器地址（存 SharedPreferences，全 APP 生效） */
-    private void showServerDialog() {
-        LinearLayout dialogLayout = new LinearLayout(this);
-        dialogLayout.setOrientation(LinearLayout.VERTICAL);
-        int pad = (int) (16 * getResources().getDisplayMetrics().density);
-        dialogLayout.setPadding(pad, pad, pad, 0);
-
-        TextView hint = new TextView(this);
-        hint.setText(R.string.server_settings_hint);
-        hint.setTextSize(13);
-        dialogLayout.addView(hint);
-
-        final EditText etServer = new EditText(this);
-        etServer.setSingleLine(true);
-        etServer.setText(ServerConfig.get(this));
-        dialogLayout.addView(etServer);
-
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.server_settings)
-                .setView(dialogLayout)
-                .setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        ServerConfig.set(MainActivity.this, etServer.getText().toString());
-                        Toast.makeText(MainActivity.this,
-                                R.string.server_settings_saved, Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .show();
+    @Override
+    public String getDeviceIp() {
+        return TextUtils.isEmpty(lastIp) ? DevicePrefs.DEFAULT_IP : lastIp;
     }
 
-    private void connect() {
-        String ip = etIp.getText().toString().trim();
-        String portStr = etPort.getText().toString().trim();
+    @Override
+    public int getDevicePort() {
+        return lastPort > 0 ? lastPort : DevicePrefs.DEFAULT_PORT;
+    }
 
+    @Override
+    public SensorData getLastSensorData() {
+        return lastSensorData;
+    }
+
+    @Override
+    public void connectDevice(String ip, int port) {
         if (TextUtils.isEmpty(ip)) {
             Toast.makeText(this, R.string.enter_ip, Toast.LENGTH_SHORT).show();
             return;
         }
-
-        if (TextUtils.isEmpty(portStr)) {
-            Toast.makeText(this, R.string.enter_port, Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        int port = Integer.parseInt(portStr);
-
-        lastIp = ip;
+        lastIp = ip.trim();
         lastPort = port;
+        DevicePrefs.set(this, lastIp, lastPort);
+
         userRequestedConnect = true;
         mainHandler.removeCallbacks(reconnectRunnable);
         mainHandler.removeCallbacks(watchdogRunnable);
         mainHandler.postDelayed(watchdogRunnable, WATCHDOG_PERIOD_MS);
 
-        tvStatus.setText(R.string.connecting);
-        tvStatus.setTextColor(getResources().getColor(R.color.colorWarning));
-        btnConnect.setEnabled(false);
-
+        notifyState(false, getString(R.string.connecting), R.color.colorWarning);
         connectInternal();
+    }
+
+    @Override
+    public void disconnectDevice() {
+        // 用户主动断开：连"上次连着"的记忆一起清掉，免得之后重建又自己连回来
+        AppPrefs.setWasConnected(this, false);
+        disconnect();
+    }
+
+    @Override
+    public void openThresholdDialog() {
+        showThresholdDialog();
+    }
+
+    @Override
+    public void setSensorListener(DeviceHost.SensorListener listener) {
+        sensorListener = listener;
+        if (listener == null) return;
+        // 立即回放：新注册（或切回首页）时把当前值和连接状态补上
+        if (lastSensorData != null) {
+            listener.onSensorData(lastSensorData);
+        }
+        listener.onConnectionState(isConnected,
+                connText == null ? getString(R.string.disconnected) : connText,
+                connColorRes);
+    }
+
+    /** 统一的状态出口：记录一份 + 推给首页（首页不在时 listener 为 null，天然跳过） */
+    private void notifyState(boolean connected, String text, int colorRes) {
+        connText = text;
+        connColorRes = colorRes;
+        if (sensorListener != null) {
+            sensorListener.onConnectionState(connected, text, colorRes);
+        }
     }
 
     /** 用记住的 ip/port 建立连接（手动连接和自动重连共用） */
@@ -225,43 +274,33 @@ public class MainActivity extends AppCompatActivity {
             public void onConnected() {
                 isConnected = true;
                 lastDataTime = SystemClock.elapsedRealtime();
-                btnConnect.setText(R.string.disconnect);
-                btnConnect.setEnabled(true);
-                tvStatus.setText(R.string.connected);
-                tvStatus.setTextColor(getResources().getColor(R.color.colorSuccess));
+                AppPrefs.setWasConnected(MainActivity.this, true);   // 记住连接意图，供重建后自动重连
+                notifyState(true, getString(R.string.connected), R.color.colorSuccess);
                 Toast.makeText(MainActivity.this, "连接成功", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onDisconnected() {
                 isConnected = false;
-                btnConnect.setText(R.string.connect);
-                btnConnect.setEnabled(true);
                 if (userRequestedConnect) {
                     // 断线自动重连：显示倒计时状态，5 秒后重试
-                    tvStatus.setText("已断开，正在自动重连…");
-                    tvStatus.setTextColor(getResources().getColor(R.color.colorWarning));
+                    notifyState(false, "已断开，正在自动重连…", R.color.colorWarning);
                     mainHandler.removeCallbacks(reconnectRunnable);
                     mainHandler.postDelayed(reconnectRunnable, RECONNECT_DELAY_MS);
                 } else {
-                    tvStatus.setText(R.string.disconnected);
-                    tvStatus.setTextColor(getResources().getColor(R.color.colorError));
+                    notifyState(false, getString(R.string.disconnected), R.color.colorError);
                 }
             }
 
             @Override
             public void onConnectionFailed(String error) {
                 isConnected = false;
-                btnConnect.setText(R.string.connect);
-                btnConnect.setEnabled(true);
                 if (userRequestedConnect) {
-                    tvStatus.setText("连接失败，正在自动重连…");
-                    tvStatus.setTextColor(getResources().getColor(R.color.colorWarning));
+                    notifyState(false, "连接失败，正在自动重连…", R.color.colorWarning);
                     mainHandler.removeCallbacks(reconnectRunnable);
                     mainHandler.postDelayed(reconnectRunnable, RECONNECT_DELAY_MS);
                 } else {
-                    tvStatus.setText(R.string.disconnected);
-                    tvStatus.setTextColor(getResources().getColor(R.color.colorError));
+                    notifyState(false, getString(R.string.disconnected), R.color.colorError);
                     Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
                 }
             }
@@ -271,8 +310,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDataReceived(SensorData data) {
                 lastDataTime = SystemClock.elapsedRealtime();
-                updateSensorData(data);
-                // P1：节流上报到 Flask /api/sensor，持续写入 sensor.db 供墒情预测训练
+                lastSensorData = data;                                   // ① 缓存（供回放）
+                if (sensorListener != null) {
+                    sensorListener.onSensorData(data);                   // ② 推送首页
+                }
+                // ③ 原逻辑不动：节流上报到 Flask /api/sensor，持续写入 sensor.db
                 SensorUploader.report(MainActivity.this, data);
             }
         });
@@ -283,6 +325,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void disconnect() {
         // 用户主动断开：关掉自动重连和看门狗
+        // ⚠️ 这里不清 AppPrefs.wasConnected：onDestroy 也走这个方法（切深色模式会重建 Activity），
+        //    清了就没法在重建后自动重连。清除只发生在用户真正点"断开"的 disconnectDevice()。
         userRequestedConnect = false;
         mainHandler.removeCallbacks(reconnectRunnable);
         mainHandler.removeCallbacks(watchdogRunnable);
@@ -291,22 +335,13 @@ public class MainActivity extends AppCompatActivity {
             tcpClient = null;
         }
         isConnected = false;
-        btnConnect.setText(R.string.connect);
-        tvStatus.setText(R.string.disconnected);
-        tvStatus.setTextColor(getResources().getColor(R.color.colorError));
+        notifyState(false, getString(R.string.disconnected), R.color.colorError);
     }
 
-    private void updateSensorData(SensorData data) {
-        tvTempValue.setText(String.valueOf(data.getTemperature()));
-        tvHumiValue.setText(String.valueOf(data.getHumidity()));
-        tvLightValue.setText(String.valueOf(data.getLightLux()));
-        tvSoilValue.setText(String.valueOf(data.getSoilHumidity()));
-        tvWaterValue.setText(String.valueOf(data.getWaterLevel()));
-    }
-
+    /** 阈值设置对话框：行为与改造前一致（未连接不能发） */
     private void showThresholdDialog() {
-        if (!isConnected) {
-            Toast.makeText(this, "请先连接到设备", Toast.LENGTH_SHORT).show();
+        if (!isConnected || tcpClient == null) {
+            Toast.makeText(this, R.string.threshold_need_connect, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -340,7 +375,6 @@ public class MainActivity extends AppCompatActivity {
                     waterThreshold = water;
 
                     tcpClient.sendThresholdCommand(temp, humi, light, 10, water);
-
                     Toast.makeText(MainActivity.this, "阈值设置已发送", Toast.LENGTH_SHORT).show();
                 } catch (NumberFormatException e) {
                     Toast.makeText(MainActivity.this, "请输入有效的数值", Toast.LENGTH_SHORT).show();
@@ -348,13 +382,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-            }
-        });
-
+        builder.setNegativeButton(R.string.cancel, null);
         builder.show();
     }
 
@@ -365,6 +393,7 @@ public class MainActivity extends AppCompatActivity {
         userRequestedConnect = false;
         mainHandler.removeCallbacks(reconnectRunnable);
         mainHandler.removeCallbacks(watchdogRunnable);
+        sensorListener = null;
         disconnect();
         if (diseasePoller != null) {
             diseasePoller.stop();

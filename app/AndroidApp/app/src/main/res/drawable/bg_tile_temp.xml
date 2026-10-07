@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 温度瓷砖（2026-10-07 方案甲·整卡对角渐变，白多色少）。
+     做法：layer-list 两层各自铺满整卡 —— 底层是灰底 colorTile，上层是同圆角的整卡对角渐变。
+     ⚠️ 上层不写 gravity / width / height，就自动铺满整卡 —— 这样没有任何"色块边界"，过渡是连续的。
+     ★ 白色占大头靠 centerColor：三个停靠点 0% / 50% / 100% 的 alpha 是 0 / 0 / 80。
+       前半张对角（0→50%）alpha 一直是 0 = 纯白，后半张（50%→100%）才从透明渐到 50%。
+       想再白一点 → 把 centerColor 换成 #0D(5%) 以下；想更早见色 → 去掉 centerColor。
+     ⚠️ start / center / end 必须是同一个色相（这里都用 F0553C），只是 alpha 不同。
+       若起止用两个不同颜色（如旧的 #FF9B62 → #F0553C），透明化之后中途会发灰发脏。
+     ⚠️ android:angle 只能是 45 的倍数且逆时针 —— 315° 才是"左上 → 右下"。
+     ⚠️ 渐变层圆角必须等于卡片圆角 16dp，否则四个角会戳出来。
+     挂在卡内层 LinearLayout 的 background 上（MaterialCardView 本身不吃渐变）。 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/colorTile" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp" />
+            <gradient
+                android:angle="315"
+                android:startColor="#00F0553C"
+                android:centerColor="#00F0553C"
+                android:endColor="#80F0553C"
+                android:type="linear" />
+        </shape>
+    </item>
+</layer-list>

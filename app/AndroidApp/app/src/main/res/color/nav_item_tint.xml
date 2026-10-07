@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 底部导航的双态着色：选中绿、未选中灰。
+     图标 vector 里故意不写 android:tint，否则会和这里的 itemIconTint 叠加。 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="@color/colorPrimary" android:state_checked="true" />
+    <item android:color="@color/colorNavUnselected" />
+</selector>

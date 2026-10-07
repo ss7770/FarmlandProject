@@ -1,0 +1,11 @@
+digraph
+{
+    "\"0\"" [ label = var_3_3, shape = rectangle ]
+    "\"1\"" [ label = <<table border="0" cellborder="1" cellspacing="0"><tr><td>Call</td><td>Softmax()</td><td port="P0">input</td><td port="P1">i32</td></tr><tr><td colspan="4">f32[1,38]</td></tr></table>>, shape = plain ]
+    "\"2\"" [ label = <<table border="0" cellborder="1" cellspacing="0"><tr><td>Call</td><td>func_1</td><td port="P0">ddrIf</td></tr><tr><td colspan="3">f32[1,38]</td></tr></table>>, shape = plain ]
+    "\"4\"" [ label = <<table border="0" cellborder="1" cellspacing="0"><tr><td>Call</td><td>func_0</td><td port="P0">ddrIf</td></tr><tr><td colspan="3">u8[1,1024,7,7]</td></tr></table>>, shape = plain ]
+
+    "\"0\"" -> "\"4\"":P0
+    "\"4\"" -> "\"2\"":P0
+    "\"2\"" -> "\"1\"":P0
+}

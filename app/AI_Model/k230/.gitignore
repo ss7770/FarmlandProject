@@ -1,0 +1,11 @@
+# nncase 转换环境（体积大，可重建，不入库）
+.venv-nncase/
+
+# 离线安装包（19MB+，需要时按 README 从 GitHub Release 下）
+whl/*.whl
+
+# 校准集（从 uploads 生成，可重建）
+calib/
+
+# 转换产物（体积大，但**建议保留**，方便直接演示；如需精简可放开下面一行）
+# model.kmodel

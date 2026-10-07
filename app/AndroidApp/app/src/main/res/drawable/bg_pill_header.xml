@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- header 右上角的状态胶囊：深绿半透明底、全圆角 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/colorPillHeader" />
+    <corners android:radius="999dp" />
+</shape>

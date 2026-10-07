@@ -1,0 +1,32 @@
+<resources>
+    <!-- 2026-10-06 暗色板（黑底 + 暗绿卡）：与 values/colors.xml 同名一一对应，
+         每个颜色都必须列，否则 AppCompat 会回退到浅色值。
+         由设置页「深色模式」开关控制（AppCompatDelegate.setDefaultNightMode），
+         不跟随系统、默认浅色。 -->
+    <color name="colorPrimary">#3DBE7B</color>
+    <!-- 暗色下状态栏用页面黑，避免一条亮绿横条 -->
+    <color name="colorPrimaryDark">#0B0F0D</color>
+    <color name="colorAccent">#FF7043</color>
+    <color name="colorBackground">#0B0F0D</color>
+    <color name="colorCard">#12211A</color>
+    <color name="colorText">#E6F2EA</color>
+    <color name="colorTextSecondary">#93A89C</color>
+    <color name="colorSuccess">#3DBE7B</color>
+    <color name="colorError">#FF6B6B</color>
+    <color name="colorWarning">#FFB74D</color>
+    <!-- 徽章/header 绿渐变属品牌元素，暗色下保持不动 -->
+    <color name="colorBadgeStart">#4CD98A</color>
+    <color name="colorBadgeEnd">#2FA860</color>
+    <color name="colorNavUnselected">#7C8D83</color>
+    <color name="colorDivider">#1E3329</color>
+
+    <color name="colorTile">#16261E</color>
+    <color name="colorHeaderSub">#B3E8F5EE</color>
+    <color name="colorPillHeader">#332E7D52</color>
+    <color name="colorPillGreenBg">#173425</color>
+    <color name="colorPillGreenText">#4CD98A</color>
+    <color name="colorPillOrangeBg">#3A2A12</color>
+    <color name="colorPillOrangeText">#FFB74D</color>
+    <color name="colorPillGrayBg">#1B2A22</color>
+    <color name="colorPillGrayText">#A9B8AF</color>
+</resources>

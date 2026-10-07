@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 页面顶栏底：品牌绿渐变曲面条（2026-10-07）。
+     与 Web 端 style.css 的 .app-titlebar（linear-gradient(135deg,#3DBE7B,#2FA860) + 圆角 0 0 24px 24px）同源。
+     ⚠️ 改色值 / 圆角时三处要一起改：本文件、Web 的 .app-titlebar、首页 header（首页那条用图片背景）。
+     android:angle=315 等价于 CSS 的 135deg（左上 → 右下）。
+     ⚠️ 只圆下面两个角：上面要贴屏幕顶，圆了会露出底色。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="315"
+        android:type="linear"
+        android:startColor="@color/colorPrimary"
+        android:endColor="@color/colorPrimaryDark" />
+    <corners
+        android:bottomLeftRadius="24dp"
+        android:bottomRightRadius="24dp" />
+</shape>

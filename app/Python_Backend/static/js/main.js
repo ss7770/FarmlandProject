@@ -7,6 +7,13 @@ let select = document.getElementById('select');
 let chartDom = document.getElementById('chart');
 let myChart = echarts.init(chartDom);
 
+// 2026-10-05：手机 App 的 WebView 里容器尺寸会变（切 Tab、键盘弹出、横竖屏），
+// ECharts 自己不会跟着重算，画布会错位/被裁。这里补一个 resize 监听；
+// 安卓端切回「数据」Tab 时还会主动派发一次 resize 事件做兜底。
+window.addEventListener('resize', function () {
+    if (myChart) myChart.resize();
+});
+
 
 window.onload = function () {
     btn6h.classList.add('active');
@@ -130,16 +137,16 @@ function loadData(range) {
                 symbol: 'circle',
                 symbolSize: 6,
                 lineStyle: {
-                    color: '#5cb85c',
+                    color: '#3dbe7b',
                     width: 2
                 },
                 itemStyle: {
                     color: '#fff',
-                    borderColor: '#5cb85c',
+                    borderColor: '#3dbe7b',
                     borderWidth: 2
                 },
                 areaStyle: {
-                    color: 'rgba(92, 184, 92, 0.2)'
+                    color: 'rgba(61, 190, 123, 0.2)'
                 }
             }],
             tooltip: {
@@ -154,193 +161,11 @@ function loadData(range) {
 })
 }
 
-// ===== 病害巡检记录（ESP32-CAM 自动上传 / D200 摄像头自动巡检） =====
-var SOURCE_LABEL = {
-    'auto': '自动上传',
-    'd200': 'D200 巡检',
-    'manual': '手动'
-};
-/** 病害记录列表刷新间隔（与 APP 端 30 秒轮询错开，避免同时打后端） */
-var DISEASE_LIST_MS = 20000;
-
-function loadDiseaseRecords() {
-    fetch('/api/disease/records?limit=8')
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-            var ul = document.getElementById('disease-list');
-            if (!ul) return;
-            ul.innerHTML = '';
-            if (!d.records || d.records.length === 0) {
-                ul.innerHTML = '<li>暂无记录（等待 D200 巡检或拍照上传）</li>';
-                return;
-            }
-            d.records.forEach(function(rec) {
-                var li = document.createElement('li');
-                var img = rec.image_path
-                    ? '<img src="/api/' + rec.image_path + '" style="width:60px;vertical-align:middle;margin-right:8px;border-radius:4px;">'
-                    : '';
-                li.innerHTML = img + rec.timestamp + ' — <b>' + rec.disease + '</b>（' +
-                               rec.confidence + '%，' + (SOURCE_LABEL[rec.source] || rec.source || '手动') + '）';
-                ul.appendChild(li);
-            });
-        })
-        .catch(function() {
-            var ul = document.getElementById('disease-list');
-            if (ul) ul.innerHTML = '<li>病害记录加载失败</li>';
-        });
-}
-
-window.addEventListener('load', loadDiseaseRecords);
-// 病害记录列表必须自动轮询：否则打开看板那一刻的列表（含缩略图）就定死了。
-// 后端新记录入库、APP 通知也响，看板里的图片却始终不变——之前缺的就是这个 setInterval。
-window.setInterval(loadDiseaseRecords, DISEASE_LIST_MS);
-
-// ===== D200 摄像头巡检面板 =====
-var CAMERA_STATUS_MS = 10000;
-var CAMERA_RESULT_MS = 15000;
-
-function verdictBadge(verdict, text) {
-    var label = { confirmed: '确诊', suspected: '疑似', rejected: '拒识' }[verdict] || verdict;
-    return '<span class="verdict-badge verdict-' + verdict + '">' + label + '</span>' + (text || '');
-}
-
-function loadCameraStatus() {
-    fetch('/api/camera/status')
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-            var cam = (d.camera || {});
-            var el = document.getElementById('camera-status');
-            if (!el) return;
-            if (!cam.enabled) {
-                el.className = 'camera-status offline';
-                el.textContent = '摄像头未启用（config.D200_ENABLED=false）';
-            } else if (cam.online) {
-                el.className = 'camera-status online';
-                el.textContent = '在线 ' + cam.host;
-            } else {
-                el.className = 'camera-status offline';
-                el.textContent = '离线 ' + cam.host +
-                    (cam.last_error ? '（' + cam.last_error + '）' : '');
-            }
-            var st = cam.state || {};
-            var meta = [];
-            if (cam.frame_seq) meta.push('第 ' + cam.frame_seq + ' 帧');
-            if (cam.last_frame_age_sec !== null && cam.last_frame_age_sec !== undefined)
-                meta.push('最近一帧 ' + cam.last_frame_age_sec + 's 前');
-            meta.push('已巡检 ' + (st.inspection_count || 0) + ' 次');
-            if (st.inspect && cam.inspect && cam.inspect.enabled === false) meta.push('自动巡检已关闭');
-            document.getElementById('camera-meta').textContent = meta.join(' · ');
-            noteCameraSeq(cam.frame_seq);   // 帧号不前进 → 看门狗重连推流
-        })
-        .catch(function() {
-            var el = document.getElementById('camera-status');
-            if (el) { el.className = 'camera-status offline'; el.textContent = '状态获取失败'; }
-        });
-}
-
-function renderCameraResult(res) {
-    var box = document.getElementById('camera-result');
-    if (!box) return;
-    if (!res) { box.textContent = '暂无巡检结果'; return; }
-    if (res.status !== 'ok') {
-        box.innerHTML = '<b>抓拍失败：</b>' + (res.msg || '') +
-            (res.detail ? '（' + res.detail + '）' : '');
-        return;
-    }
-    if (!res.verdict) {   // 识别服务不可用等异常：只给提示，不渲染三档徽章
-        box.innerHTML = '<b>已抓拍</b>（' + (res.image || '') + '），但识别未返回结果：' +
-            (res.msg || '见服务端日志');
-        return;
-    }
-    var head = verdictBadge(res.verdict, res.verdict_text || '');
-    var line = head + '<b>' + (res.disease || '--') + '</b>';
-    if (res.confidence !== undefined) line += '　置信度 ' + res.confidence + '%';
-    line += '　<span style="color:#999">' + (res.timestamp || '') +
-        '（' + (res.trigger === 'manual' ? '手动抓拍' : '自动巡检') + '）</span>';
-    if (res.recorded) line += '　<span style="color:#d9534f">已写入巡检记录</span>';
-    var img = res.image ? '<img src="/api/uploads/' + res.image + '" alt="抓拍图">' : '';
-    box.innerHTML = line + img;
-}
-
-function loadCameraLatest() {
-    fetch('/api/camera/latest')
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-            if (d.status === 'ok') renderCameraResult(d.result);
-            else renderCameraResult(null);
-        })
-        .catch(function() { renderCameraResult(null); });
-}
-
-function doCapture() {
-    var btn = document.getElementById('btn-capture');
-    if (!btn) return;
-    btn.disabled = true;
-    btn.textContent = '识别中…';
-    fetch('/api/camera/capture', { method: 'POST' })
-        .then(function(r) { return r.json(); })
-        .then(function(d) {
-            renderCameraResult(d.status === 'ok' ? d : { status: 'error', msg: d.msg, detail: d.detail });
-            loadCameraStatus();
-            loadDiseaseRecords();
-        })
-        .catch(function(e) {
-            renderCameraResult({ status: 'error', msg: e.message });
-        })
-        .then(function() {
-            btn.disabled = false;
-            btn.textContent = '立即抓拍识别';
-        });
-}
-
-// ===== 推流看门狗 =====
-// 为什么不能只靠 img.onerror：MJPEG 是 multipart/x-mixed-replace，
-// 画面冻结或服务端主动结束流时，多数浏览器不会触发 error，
-// <img> 会一动不动地停在最后一帧（这正是"看板图片根本不改变"的现象）。
-// 所以改用 /api/camera/status 的 frame_seq 判断画面是否还在推进。
-var CAMERA_STALL_POLLS = 3;      // 连续 3 次 status（约 30 秒）帧号不前进就重连
-var streamSeq = null;
-var streamStall = 0;
-
-function reloadCameraStream() {
-    var img = document.getElementById('camera-stream');
-    if (!img) return;
-    streamSeq = null;
-    streamStall = 0;
-    img.src = '/api/camera/stream?t=' + Date.now();
-}
-
-function noteCameraSeq(seq) {
-    if (seq === undefined || seq === null) return;
-    if (streamSeq !== null && seq <= streamSeq) {
-        streamStall++;
-        if (streamStall >= CAMERA_STALL_POLLS) reloadCameraStream();
-    } else {
-        streamStall = 0;
-    }
-    streamSeq = seq;
-}
-
-// 推流断了（板子重启/被挤掉）时自动重连
-function bindCameraStream() {
-    var img = document.getElementById('camera-stream');
-    var btn = document.getElementById('btn-capture');
-    if (btn) btn.onclick = doCapture;
-    if (!img) return;
-    img.onerror = function() {
-        setTimeout(reloadCameraStream, 3000);
-    };
-}
-
-if (document.readyState === 'complete') {
-    bindCameraStream();
-} else {
-    window.addEventListener('load', bindCameraStream);
-}
-window.addEventListener('load', loadCameraStatus);
-window.addEventListener('load', loadCameraLatest);
-window.setInterval(loadCameraStatus, CAMERA_STATUS_MS);
-window.setInterval(loadCameraLatest, CAMERA_RESULT_MS);
+// ===== 病害识别（2026-10-01 起全部在同级页 /disease） =====
+// 本页原先的「AI 病害识别（K230 边缘推理）」面板、以及后来那张「病害识别 ›」入口卡都已移除，
+// 病害识别的设备状态 / 最新结果（含图片与置信度占位）/ 记录列表 / 上传识别，
+// 全部由 templates/disease_board.html + static/js/disease_board.js 负责。
+// 本页不再轮询病害接口，避免两处各拉一份 overview。
 
 // ===== AI 灌溉决策面板（P2：融合墒情预测 + 天气 + 病害，可解释输出） =====
 var AI_REFRESH_MS = 60000;
@@ -367,6 +192,11 @@ function loadAiRecommendation() {
         .then(function (r) { return r.json(); })
         .then(function (d) {
             if (d.status !== 'ok') throw new Error(d.msg || '接口异常');
+            // 2026-10-06：把这份结果广播给同页的「AI 墒情短期预测」卡（dashboard.html 内联脚本监听）。
+            // 走事件而不是让那边再 fetch 一次：零额外请求、单一数据源，图表与本面板永不一致不了。
+            try {
+                window.dispatchEvent(new CustomEvent('airec', { detail: d }));
+            } catch (e) { }
             var rec = d.recommendation || {};
             var fc = d.forecast || {};
             var sensor = d.sensor || {};

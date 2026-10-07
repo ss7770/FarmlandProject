@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 湿度瓷砖（2026-10-07 方案甲·整卡对角渐变，白多色少：0% → 中点 0% → 右下 50%）。见 bg_tile_temp.xml 注释。 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/colorTile" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp" />
+            <gradient
+                android:angle="315"
+                android:startColor="#002E9BE6"
+                android:centerColor="#002E9BE6"
+                android:endColor="#802E9BE6"
+                android:type="linear" />
+        </shape>
+    </item>
+</layer-list>

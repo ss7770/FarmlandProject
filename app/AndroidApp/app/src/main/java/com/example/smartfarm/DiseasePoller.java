@@ -161,6 +161,12 @@ public class DiseasePoller {
 
         if (firstSync) return;
 
+        // 只播报"已确诊"的记录（2026-10-01 起）。
+        // 服务端改成"拍到就入库"后，未确诊的记录会以巡检节奏持续产生；
+        // 它们只该安静地留在看板列表里，不该每 10 秒弹一次通知——
+        // 不做诊断 = 不通知、不播报，这是"不诊断"这条口径的应有之义。
+        if (!latest.optBoolean("diagnosed", false)) return;
+
         final String label = latest.optString("disease", "未知病害");
         final double confidence = latest.optDouble("confidence", 0.0);
         mainHandler.post(new Runnable() {
@@ -190,7 +196,7 @@ public class DiseasePoller {
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "病害巡检提醒",
                     NotificationManager.IMPORTANCE_HIGH);
-            ch.setDescription("ESP32-CAM 自动巡检发现的病害通知");
+            ch.setDescription("巡检发现的病害通知（K230 边缘识别 / 手动上传）");
             nm.createNotificationChannel(ch);
         }
 
@@ -204,7 +210,8 @@ public class DiseasePoller {
                         text + "\n" + (suggestion == null ? "" : suggestion)))
                 .setAutoCancel(true);
 
-        Intent click = new Intent(appContext, DiseaseActivity.class);
+        // 点通知先打哪个页面：Web 端病害识别看板（原生病害识别页已删除，2026-10-01）
+        Intent click = MoreActivity.intentFor(appContext, MoreActivity.PATH_DISEASE);
         click.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         b.setContentIntent(PendingIntent.getActivity(appContext, (int) id, click,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));

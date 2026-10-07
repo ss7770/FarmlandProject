@@ -5,10 +5,16 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 语音输入（2026-10-07 小慧对话框麦克风）：运行时申请，用户首次点麦克风才弹 -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- 2026-10-07：原来的 SpeechRecognizer 包可见性声明（android.speech.RecognitionService）
+         已随"语音输入换路"一并删除 —— 现在改成"本机录音 + 上传 /api/asr 由 PC 端 Vosk 识别"，
+         不再查询设备上的语音识别服务。（顺带确认过：startActivity 本就不受包可见性限制，
+         补 <queries> 也救不了"系统语音界面不存在"那台机器。） -->
 
     <application
+        android:name=".FarmApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -25,23 +31,17 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".DiseaseActivity"
-            android:screenOrientation="portrait" />
-
+        <!-- 网页看板容器：首页 dashboard 与 /disease 病害识别看板都走这里
+             （原生病害识别页 DiseaseActivity 已于 2026-10-01 删除）
+             ⚠️ 保留原因：DiseasePoller 的病害通知点击后仍指向 MoreActivity。 -->
         <activity
             android:name=".MoreActivity"
             android:screenOrientation="portrait" />
 
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
+        <!-- 设备管理子页（2026-10-05 新增，目前只有一台设备） -->
+        <activity
+            android:name=".DeviceManageActivity"
+            android:screenOrientation="portrait" />
     </application>
 
 </manifest>

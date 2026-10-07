@@ -1,12 +1,45 @@
 <resources>
-    <color name="colorPrimary">#4CAF50</color>
-    <color name="colorPrimaryDark">#388E3C</color>
+    <!-- 2026-10-06 换肤：配色跟随参考图（鲜绿渐变徽章风格） -->
+    <color name="colorPrimary">#3DBE7B</color>
+    <color name="colorPrimaryDark">#2FA860</color>
     <color name="colorAccent">#FF5722</color>
-    <color name="colorBackground">#F5F5F5</color>
+    <color name="colorBackground">#E8F0EA</color>
     <color name="colorCard">#FFFFFF</color>
     <color name="colorText">#333333</color>
     <color name="colorTextSecondary">#666666</color>
-    <color name="colorSuccess">#4CAF50</color>
+    <color name="colorSuccess">#3DBE7B</color>
     <color name="colorError">#F44336</color>
     <color name="colorWarning">#FF9800</color>
+    <!-- 图标徽章：绿色渐变（135° 视觉角 = top-left → bottom-right） -->
+    <color name="colorBadgeStart">#4CD98A</color>
+    <color name="colorBadgeEnd">#2FA860</color>
+    <!-- 底部导航：未选中项的颜色；分隔线 -->
+    <color name="colorNavUnselected">#999999</color>
+    <color name="colorDivider">#EEEEEE</color>
+
+    <!-- 2026-10-06 首页改版（参考图同款分层：白容器套灰瓷砖） -->
+    <color name="colorTile">#F6F8F6</color>
+
+    <!-- 2026-10-07 五卡彩色渐变（图标徽章彩圆 + 进度条填充共用同一套色，单一来源）
+         按约定暗色不同步维护：暗色下沿用这组值 → 只写在 values/colors.xml。 -->
+    <color name="colorBadgeTempStart">#FF9B62</color>
+    <color name="colorBadgeTempEnd">#F0553C</color>
+    <color name="colorBadgeHumiStart">#52D1E0</color>
+    <color name="colorBadgeHumiEnd">#2E9BE6</color>
+    <color name="colorBadgeLightStart">#FFD65E</color>
+    <color name="colorBadgeLightEnd">#F5A623</color>
+    <color name="colorBadgeSoilStart">#6ED88A</color>
+    <color name="colorBadgeSoilEnd">#2FA860</color>
+    <color name="colorBadgeWaterStart">#5CA8FF</color>
+    <color name="colorBadgeWaterEnd">#2E6FE0</color>
+    <color name="colorHeaderSub">#B3FFFFFF</color>
+    <!-- header 上的深绿半透明状态胶囊 -->
+    <color name="colorPillHeader">#332E7D52</color>
+    <!-- 胶囊浅底三色（文字色与底色成对） -->
+    <color name="colorPillGreenBg">#E3F5EB</color>
+    <color name="colorPillGreenText">#2FA860</color>
+    <color name="colorPillOrangeBg">#FFF3E0</color>
+    <color name="colorPillOrangeText">#EF6C00</color>
+    <color name="colorPillGrayBg">#F0F2F0</color>
+    <color name="colorPillGrayText">#666666</color>
 </resources>

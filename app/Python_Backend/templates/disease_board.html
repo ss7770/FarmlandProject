@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>if (navigator.userAgent.indexOf("; wv)") > -1) document.documentElement.classList.add("in-webview");</script>
+    <title>慧耕沃野 · 病害识别</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+</head>
+<body>
+    <div class="container">
+
+        <!-- ========== 顶部标题栏（APP 风格） ========== -->
+        <header class="app-titlebar">
+            <div class="tb-left">
+                <div class="tb-titles">
+                    <div class="tb-name">病害识别</div>
+                </div>
+            </div>
+            <div class="tb-right">
+                <span class="tb-status"><span class="status-dot"></span>在线</span>
+                <span class="tb-clock" id="header-clock">--:--</span>
+            </div>
+        </header>
+
+        <!-- ========== 识别统计（新增） ========== -->
+        <div class="card">
+            <div class="section-title">识别统计<span class="section-sub">基于本地识别记录自动统计</span></div>
+            <div class="db-stats">
+                <div class="db-stat">
+                    <div class="db-stat-num" id="db-stat-total">--</div>
+                    <div class="db-stat-label">累计识别</div>
+                </div>
+                <div class="db-stat">
+                    <div class="db-stat-num" id="db-stat-conf">--</div>
+                    <div class="db-stat-label">确诊病害</div>
+                </div>
+                <div class="db-stat">
+                    <div class="db-stat-num" id="db-stat-susp">--</div>
+                    <div class="db-stat-label">疑似病害</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 顶部：设备状态 -->
+        <div class="db-card">
+            <div class="db-head">
+                <h4>病害识别</h4>
+            </div>
+            <div class="db-device">
+                <span id="db-device-dot" class="db-dot"></span>
+                <span id="db-device-text" class="db-device-text">设备状态获取中…</span>
+                <span id="db-device-meta" class="db-device-meta"></span>
+            </div>
+        </div>
+
+        <!-- 主体：最新结果 + AI 诊断报告（新增） -->
+        <div class="db-card">
+            <div class="db-section-title">最近一次识别</div>
+            <div id="db-latest" class="db-latest">
+                <div class="db-empty">加载中…</div>
+            </div>
+
+            <div class="db-actions">
+                <input type="file" id="db-file" accept="image/*" hidden>
+                <button id="db-btn-upload" class="db-btn db-btn-ghost">上传图片识别</button>
+                <button id="db-btn-refresh" class="db-btn db-btn-ghost">刷新</button>
+                <span id="db-upload-status" class="db-hint"></span>
+            </div>
+
+            <!-- AI 诊断报告（新增） -->
+            <div class="db-report">
+                <div class="db-report-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3Z"/></svg>
+                    AI 诊断报告
+                </div>
+                <div class="db-report-body" id="db-report-body">
+                    <span class="db-report-empty">暂无诊断数据。上传图片或刷新后，AI 将自动生成：病害名称、置信度、可能病因与处理建议。</span>
+                </div>
+
+                <!-- 防治方案（新增） -->
+                <div class="db-remedy">
+                    <div class="db-remedy-title">推荐防治方案</div>
+                    <div class="db-remedy-item"><span class="db-remedy-no">1</span><span>农事操作：立即剪除病叶并带出棚外销毁，保持通风降湿。</span></div>
+                    <div class="db-remedy-item"><span class="db-remedy-no">2</span><span>药剂防治：喷洒苯醚甲环唑（按说明稀释），7 天后再喷一次。</span></div>
+                    <div class="db-remedy-item"><span class="db-remedy-no">3</span><span>预防建议：控制浇水量避免叶片积水，定期补充钙钾肥增强抗性。</span></div>
+                    <button class="copy-btn" id="db-btn-copy" type="button">复制防治方案</button>
+                </div>
+            </div>
+
+            <div class="db-note">
+                上传图片识别：用本机选一张照片交给服务端识别。
+            </div>
+        </div>
+
+        <!-- 症状速诊（新增） -->
+        <div class="db-card">
+            <div class="db-section-title">AI 症状速诊<span class="db-section-sub">文字描述症状，AI 先给初步判断</span></div>
+            <div class="symptom-row">
+                <input id="db-symptom-input" type="text" placeholder="例如：叶片发黄卷曲、有褐色斑点" maxlength="60">
+                <button id="db-symptom-btn" type="button">速诊</button>
+            </div>
+            <div class="symptom-result" id="db-symptom-result"></div>
+        </div>
+
+        <!-- 记录列表 -->
+        <div class="db-card">
+            <div class="db-section-title">
+                识别记录
+                <span class="db-section-sub" id="db-count"></span>
+            </div>
+            <ul id="db-records" class="db-records">
+                <li class="db-empty">加载中…</li>
+            </ul>
+        </div>
+
+        <div class="app-footer">慧耕沃野 · 智慧灌溉 AIoT 平台 v1.0</div>
+
+        <!-- ========== 底部导航（APP 风格） ========== -->
+        <nav class="tab-bar">
+            <a class="tab-item" href="/" title="首页">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+                <span>首页</span>
+            </a>
+            <a class="tab-item" href="/#data-section" title="数据">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7"/><rect x="12" y="6" width="3" height="11"/><rect x="17" y="13" width="3" height="4"/></svg>
+                <span>数据</span>
+            </a>
+            <a class="tab-item active" href="/disease" title="病害">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span>病害</span>
+            </a>
+        </nav>
+    </div>
+
+    <script src="../static/js/disease_board.js"></script>
+    <script>
+    (function () {
+        'use strict';
+        function $id(i) { return document.getElementById(i); }
+        function $q(s) { return document.querySelector(s); }
+
+        /* ---------- 时钟 ---------- */
+        function tickClock() {
+            var el = $id('header-clock');
+            if (!el) return;
+            var d = new Date();
+            function p(n) { return (n < 10 ? '0' : '') + n; }
+            el.textContent = p(d.getHours()) + ':' + p(d.getMinutes());
+        }
+
+        /* ---------- 识别统计 ---------- */
+        function refreshStats() {
+            var recs = document.querySelectorAll('#db-records .db-record');
+            var confirmed = document.querySelectorAll('#db-records .db-verdict.v-confirmed').length;
+            var suspected = document.querySelectorAll('#db-records .db-verdict.v-suspected').length;
+            function set(id, v) { var el = $id(id); if (el) el.textContent = v; }
+            set('db-stat-total', recs.length);
+            set('db-stat-conf', confirmed);
+            set('db-stat-susp', suspected);
+            buildReport();
+        }
+
+        /* ---------- AI 诊断报告（基于最近一次识别结果生成） ---------- */
+        function buildReport() {
+            var body = $id('db-report-body');
+            if (!body) return;
+            var nameEl = $q('.db-latest-name');
+            var confEl = $q('.db-latest-conf');
+            var verEl = $q('.db-verdict');
+            var name = nameEl ? (nameEl.textContent || '').replace(/^\s+|\s+$/g, '') : '';
+            var conf = confEl ? (confEl.textContent || '').replace(/^\s+|\s+$/g, '') : '';
+            var ver = verEl ? (verEl.textContent || '').replace(/^\s+|\s+$/g, '') : '';
+            if (!name || name === '暂无识别结果' || !confEl || (nameEl && nameEl.className.indexOf('muted') > -1)) {
+                body.innerHTML = '<span class="db-report-empty">暂无诊断数据。上传图片或刷新后，AI 将自动生成：病害名称、置信度、可能病因与处理建议。</span>';
+                return;
+            }
+            var lines = [
+                '识别结果：' + name + '（置信度 ' + conf + '）',
+                '判定：' + (ver || '待确认'),
+                '可能病因：结合叶片症状与当前环境，倾向于' + name + '，建议 3~5 天后再复查一次以确认是否扩散。',
+                '处理建议：先隔离病株、清理病叶，并按下方防治方案执行。'
+            ];
+            body.innerHTML = lines.join('\n');
+        }
+
+        /* ---------- 复制防治方案 ---------- */
+        function initCopy() {
+            var btn = $id('db-btn-copy');
+            if (!btn) return;
+            var text = '【防治方案】\n1. 农事操作：立即剪除病叶并带出棚外销毁，保持通风降湿。\n2. 药剂防治：喷洒苯醚甲环唑（按说明稀释），7 天后再喷一次。\n3. 预防建议：控制浇水量避免叶片积水，定期补充钙钾肥增强抗性。';
+            btn.onclick = function () {
+                function done() {
+                    btn.textContent = '已复制';
+                    btn.classList.add('copied');
+                    setTimeout(function () {
+                        btn.textContent = '复制防治方案';
+                        btn.classList.remove('copied');
+                    }, 1600);
+                }
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+                } else { fallbackCopy(text); done(); }
+            };
+        }
+        function fallbackCopy(text) {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); } catch (e) {}
+            document.body.removeChild(ta);
+        }
+
+        /* ---------- 症状速诊 ---------- */
+        function symptomAnswer(input) {
+            var s = input.replace(/^\s+|\s+$/g, '');
+            if (!s) return '请先描述一下叶片 / 植株的症状，例如：叶片发黄、有斑点、卷曲等。';
+            if (s.indexOf('黄') > -1) return '叶片发黄可能是缺肥或浇水不当：若老叶先黄多为缺氮，建议追施氮肥并检查排水；若叶脉间发黄多为缺铁，可叶面喷施螯合铁。建议结合土壤湿度数据一起判断。';
+            if (s.indexOf('卷') > -1) return '卷叶常见原因：高温缺水（检查土壤湿度，及时补水）、或蚜虫 / 蓟马为害（翻看叶背，若有虫可喷吡虫啉）。';
+            if (s.indexOf('斑') > -1) return '出现斑点大概率是叶斑病或炭疽病：先剪除病叶并销毁，喷洒代森锰锌或苯醚甲环唑，同时加强通风降湿。';
+            if (s.indexOf('枯') > -1 || s.indexOf('蔫') > -1) return '枯萎 / 萎蔫要警惕根腐病或枯萎病：先控水、拔出检查根部是否发黑，若确认根腐可用恶霉灵灌根，并减少浇水频次。';
+            if (s.indexOf('虫') > -1 || s.indexOf('洞') > -1 || s.indexOf('啃') > -1) return '有明显虫害迹象：可用高效氯氰菊酯喷施，或悬挂黄板 / 蓝板诱杀成虫，傍晚施药效果更好。';
+            if (s.indexOf('白') > -1 || s.indexOf('霉') > -1) return '白粉 / 霉层通常是白粉病或灰霉病：立即通风降湿，剪除病部，喷洒三唑类药剂（如戊唑醇）。';
+            return '已记录你的症状描述。更精准的判断建议直接上传叶片照片到"病害识别"，AI 会给出病害名称与置信度，并生成对应防治方案。';
+        }
+        function initSymptom() {
+            var input = $id('db-symptom-input'), btn = $id('db-symptom-btn'), box = $id('db-symptom-result');
+            if (!input || !btn || !box) return;
+            function go() {
+                var ans = symptomAnswer(input.value);
+                box.innerHTML = '<b>AI 初步判断：</b>' + ans;
+                box.className = 'symptom-result show';
+            }
+            btn.onclick = go;
+            input.onkeydown = function (e) { if (e.key === 'Enter') go(); };
+        }
+
+        /* ---------- 启动 ---------- */
+        function init() {
+            tickClock();
+            refreshStats();
+            initCopy();
+            initSymptom();
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+        setInterval(tickClock, 30000);
+        /* 识别记录异步加载完成后自动刷新统计与报告 */
+        setTimeout(init, 1500);
+        setTimeout(init, 3200);
+    })();
+    </script>
+</body>
+</html>

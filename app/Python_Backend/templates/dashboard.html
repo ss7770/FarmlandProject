@@ -3,13 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>更多</title>
+    <script>if (navigator.userAgent.indexOf("; wv)") > -1) document.documentElement.classList.add("in-webview");</script>
+    <title>慧耕沃野 · 数据总览</title>
     <link rel="stylesheet" href="../static/css/style.css">
     <script src="../static/js/echarts.min.js"></script>
 </head>
 <body>
     <div class="container">
+
+        <!-- ========== 顶部标题栏（APP 风格） ========== -->
+        <header class="app-titlebar">
+            <div class="tb-left">
+                <div class="tb-titles">
+                    <div class="tb-name">数据总览</div>
+                </div>
+            </div>
+            <div class="tb-right">
+                <span class="tb-status"><span class="status-dot"></span>在线</span>
+                <span class="tb-clock" id="header-clock">--:--</span>
+            </div>
+        </header>
+
+        <!-- ========== AI 灌溉决策引擎（原有，位置上移） ========== -->
+        <div class="ai-panel">
+            <h4>AI 灌溉决策引擎</h4>
+            <div id="ai-summary" class="ai-summary">加载中…</div>
+            <div id="ai-chips" class="ai-chips"></div>
+            <div class="ai-block">
+                <div class="ai-block-title">决策理由（可解释）</div>
+                <ul id="ai-reasons" style="list-style:none;padding:0;">
+                    <li>加载中…</li>
+                </ul>
+            </div>
+            <div id="ai-note" class="ai-note"></div>
+        </div>
+
+        <!-- ========== 环境舒适度指数（新增） ========== -->
+        <div class="card" id="score-card">
+            <div class="section-title">AI 环境舒适度<span class="section-sub">温度 · 湿度 · 土壤综合</span></div>
+            <div id="score-content">
+                <div class="score-wrap">
+                    <div class="score-ring">
+                        <svg viewBox="0 0 120 120">
+                            <defs>
+                                <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#2fa860"/>
+                                    <stop offset="100%" stop-color="#4cd98a"/>
+                                </linearGradient>
+                            </defs>
+                            <circle class="track" cx="60" cy="60" r="45"></circle>
+                            <circle class="bar" id="score-bar" cx="60" cy="60" r="45"></circle>
+                        </svg>
+                        <div class="score-num">
+                            <b id="score-num">--</b>
+                            <span>综合得分</span>
+                        </div>
+                    </div>
+                    <div class="score-side">
+                        <div class="score-level" id="score-level"><span class="lv-dot"></span><span id="score-level-text">分析中</span></div>
+                        <div class="score-desc" id="score-desc">正在根据实时环境数据评估作物生长舒适度…</div>
+                        <div class="score-tags" id="score-tags"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 参数控件 + 趋势图表（原有，数据锚点） ========== -->
         <div id="card" class="card">
+            <div class="section-title">环境数据趋势</div>
             <div class="controls">
                 <label>参数</label>
                 <select id="select">
@@ -27,9 +88,11 @@
                 <button id="btn-refresh" class="btn-refresh">刷新</button>
             </div>
         </div>
-        <div class="chart">
-            <div id="chart" style="width: 100%; height: 400px;"></div>
+        <div class="chart" id="data-section">
+            <div id="chart" style="width: 100%; height: 58vh; min-height: 320px;"></div>
         </div>
+
+        <!-- ========== 今日天气 & 灌溉建议（原有） ========== -->
         <div class="weather">
             <h4>今日天气 & 灌溉建议</h4>
             {# 可用性看显式 ok/error 标记：Java /api/weather 成功响应里本来就带 reason（灌溉建议文案） #}
@@ -54,41 +117,605 @@
             </div>
             {% endif %}
         </div>
-        <div class="camera-panel">
-            <h4>AI 摄像头巡检（D200）</h4>
-            <div class="camera-head">
-                <span id="camera-status" class="camera-status">连接中…</span>
-                <span id="camera-meta" class="camera-meta"></span>
+
+        <!-- ========== AI 墒情短期预测 ==========
+             2026-10-06：原来这里叫「AI 未来 24h 预测」，画的是 Math.sin() 合成的假曲线，
+             且依赖天气卡 DOM（W.ok）才渲染；同时 init() 被调 3 次、每次都
+             `innerHTML='' + echarts.init(holder)`，ECharts 二次 init 返回的是已被摘掉
+             canvas 的旧实例 ⇒ 图空白。现改为只画后端真实模型输出
+             （/api/ai/recommendation 的 forecast：soil_now/soil_30/soil_60），
+             由 main.js 广播的 'airec' 事件驱动，图表实例只建一次。 -->
+        <div class="card">
+            <div class="section-title">AI 墒情短期预测<span class="section-sub">未来 30 / 60 分钟 · 模型输出</span></div>
+            <div id="pred-chart" class="pred-chart-box">
+                <div class="pred-fallback">正在读取墒情模型输出…</div>
             </div>
-            <div class="camera-view">
-                <img id="camera-stream" src="/api/camera/stream" alt="D200 实时画面">
-            </div>
-            <div class="camera-actions">
-                <button id="btn-capture" class="btn-capture">立即抓拍识别</button>
-                <span class="camera-hint">每 5 分钟自动巡检一次；确诊（≥75%）自动写入巡检记录并推送 APP</span>
-            </div>
-            <div id="camera-result" class="camera-result">加载中…</div>
+            <div class="pred-meta" id="pred-meta"></div>
         </div>
-        <div class="ai-panel">
-            <h4>AI 灌溉决策引擎</h4>
-            <div id="ai-summary" class="ai-summary">加载中…</div>
-            <div id="ai-chips" class="ai-chips"></div>
-            <div class="ai-block">
-                <div class="ai-block-title">决策理由（可解释）</div>
-                <ul id="ai-reasons" style="list-style:none;padding:0;">
-                    <li>加载中…</li>
-                </ul>
+
+        <!-- ========== 智能预警中心（新增） ========== -->
+        <div class="card">
+            <div class="section-title">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                智能预警中心
+                <span class="section-sub">基于实时环境自动生成</span>
             </div>
-            <div id="ai-note" class="ai-note"></div>
+            <div id="alert-list">
+                <div class="alert-empty">正在分析环境数据…</div>
+            </div>
         </div>
-        <div class="disease-panel">
-            <h4>病害巡检记录（自动）</h4>
-            <ul id="disease-list" style="list-style:none;padding:0;">
-                <li>加载中…</li>
-            </ul>
+
+        <!-- ========== 快捷操作（新增） ========== -->
+        <div class="card">
+            <div class="section-title">快捷操作<span class="section-sub">点击即可下发指令</span></div>
+            <div class="quick-grid">
+                <button class="quick-btn" type="button">
+                    <span class="qb-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                    </span>
+                    <span class="quick-label">手动浇水</span>
+                    <span class="quick-state">待命</span>
+                </button>
+                <button class="quick-btn" type="button">
+                    <span class="qb-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                    </span>
+                    <span class="quick-label">补光灯</span>
+                    <span class="quick-state">待命</span>
+                </button>
+                <button class="quick-btn" type="button">
+                    <span class="qb-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>
+                    </span>
+                    <span class="quick-label">启动通风</span>
+                    <span class="quick-state">待命</span>
+                </button>
+                <button class="quick-btn" type="button">
+                    <span class="qb-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+                    </span>
+                    <span class="quick-label">打开遮阳</span>
+                    <span class="quick-state">待命</span>
+                </button>
+            </div>
         </div>
+
+        <!-- ========== 小慧对话（原「AI 助手」，2026-10-07 更名） ========== -->
+        <div class="card" id="ai-assistant">
+            <div class="section-title">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                小慧
+                <span class="section-sub">浇水 · 温度 · 病虫害，都可以问</span>
+            </div>
+            <div class="chat-box" id="chat-box"></div>
+            <div class="chat-input-row">
+                <input id="chat-input" type="text" placeholder="输入问题，例如：土壤有点干怎么办" maxlength="80">
+                <!-- 语音输入：只要 App 内有 AndroidStt 桥就显示（浏览器里始终 hidden） -->
+                <button class="chat-mic" id="chat-mic" type="button" title="语音输入" hidden>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 18v4"/></svg>
+                </button>
+                <button class="chat-send" id="chat-send" type="button" title="发送">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                </button>
+            </div>
+            <div class="chat-voice-hint" id="chat-voice-hint" hidden></div>
+        </div>
+
+        <div class="app-footer">慧耕沃野 · 智慧灌溉 AIoT 平台 v1.0</div>
+
+        <!-- ========== 底部导航（APP 风格） ========== -->
+        <nav class="tab-bar">
+            <a class="tab-item active" href="/" title="首页">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+                <span>首页</span>
+            </a>
+            <a class="tab-item" href="/#data-section" title="数据">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7"/><rect x="12" y="6" width="3" height="11"/><rect x="17" y="13" width="3" height="4"/></svg>
+                <span>数据</span>
+            </a>
+            <a class="tab-item" href="/disease" title="病害">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span>病害</span>
+            </a>
+        </nav>
     </div>
+
     <script src="../static/js/main.js"></script>
+    <script>
+    (function () {
+        'use strict';
+        function $id(i) { return document.getElementById(i); }
+        function $q(s) { return document.querySelector(s); }
+
+        /* ---------- 环境数据解析（从天气卡片读取，供新模块复用） ---------- */
+        var W = { temp: null, humi: null, soil: null, rain: null, ok: false, advice: '' };
+
+        function parseWeather() {
+            var wc = $id('weather-content');
+            var wt = $id('weather-header');
+            var adv = $q('.weather-advice');
+            if (adv && adv.textContent.indexOf('{'+'{') === -1 && adv.textContent.indexOf('{'+'%') === -1 && adv.textContent.indexOf('不可用') === -1) {
+                W.advice = adv.textContent.replace(/^灌溉建议[:：]?\s*/, '').replace(/^\s+|\s+$/g, '');
+            }
+            if (!wc) return;
+            var text = wc.textContent || '';
+            if (text.indexOf('{'+'{') > -1 || text.indexOf('{'+'%') > -1 || text.indexOf('不可用') > -1) return;
+            var m;
+            m = text.match(/空气湿度[:：]\s*([\d.]+)/); if (m) W.humi = parseFloat(m[1]);
+            m = text.match(/土壤湿度[:：]\s*([\d.]+)/); if (m) W.soil = parseFloat(m[1]);
+            m = text.match(/24h降雨[:：]\s*([\d.]+)/); if (m) W.rain = parseFloat(m[1]);
+            if (wt) { m = wt.textContent.match(/([\d.]+)\s*°C/); if (m) W.temp = parseFloat(m[1]); }
+            W.ok = W.temp !== null || W.humi !== null || W.soil !== null;
+        }
+
+        /* ---------- 环境舒适度指数 ---------- */
+        function scoreOf(val, lo, idealMin, idealMax, hi) {
+            if (val === null || val === undefined || isNaN(val)) return null;
+            if (val >= idealMin && val <= idealMax) return 100;
+            var d;
+            if (val < idealMin) { d = (idealMin - val) / Math.max(0.001, idealMin - lo); }
+            else { d = (val - idealMax) / Math.max(0.001, hi - idealMax); }
+            return Math.max(0, Math.min(100, Math.round(100 - 100 * Math.min(1, d))));
+        }
+        function levelOf(s) {
+            if (s >= 85) return { text: '优', cls: 'good', desc: '各项指标处于作物适宜区间，长势良好，无需干预。' };
+            if (s >= 70) return { text: '良', cls: 'good', desc: '整体适宜，个别指标接近临界值，建议留意变化。' };
+            if (s >= 50) return { text: '中', cls: 'mid', desc: '部分指标偏离适宜区间，建议参考下方预警采取调整。' };
+            return { text: '差', cls: 'bad', desc: '环境明显不适宜，请尽快按预警与灌溉建议处理。' };
+        }
+        function initScore() {
+            var content = $id('score-content');
+            if (!content) return;
+            if (!W.ok) {
+                content.innerHTML = '<div class="score-empty">暂无环境数据<br>启动 Java 天气服务（/api/weather）后自动生成舒适度指数</div>';
+                return;
+            }
+            var sT = scoreOf(W.temp, 0, 20, 28, 45);
+            var sH = scoreOf(W.humi, 0, 50, 80, 100);
+            var sS = scoreOf(W.soil, 0, 40, 70, 100);
+            var parts = [];
+            if (sT !== null) parts.push(sT * 0.35);
+            if (sH !== null) parts.push(sH * 0.3);
+            if (sS !== null) parts.push(sS * 0.35);
+            if (!parts.length) return;
+            var total = 0, i;
+            for (i = 0; i < parts.length; i++) total += parts[i];
+            var score = Math.round(total);
+            var lv = levelOf(score);
+            $id('score-num').textContent = score;
+            var lvEl = $id('score-level');
+            lvEl.className = 'score-level ' + lv.cls;
+            lvEl.innerHTML = '<span class="lv-dot"></span><span id="score-level-text">' + lv.text + '</span>';
+            $id('score-desc').textContent = lv.desc;
+            var bar = $id('score-bar');
+            if (bar) bar.style.strokeDashoffset = String(283 * (1 - score / 100));
+            var tags = $id('score-tags');
+            tags.innerHTML = '';
+            function tag(name, s) {
+                var cls = s >= 85 ? 'ok' : s >= 60 ? '' : 'warn';
+                var sp = document.createElement('span');
+                sp.className = 'tag ' + cls;
+                sp.textContent = name + ' ' + (s >= 85 ? '适宜' : s >= 60 ? '接近临界' : '需调整');
+                tags.appendChild(sp);
+            }
+            if (sT !== null) tag('温度', sT);
+            if (sH !== null) tag('湿度', sH);
+            if (sS !== null) tag('土壤', sS);
+        }
+
+        /* ---------- AI 墒情短期预测（真实模型输出） ----------
+           数据来自 main.js 广播的 'airec' 事件（它本来就在拉 /api/ai/recommendation），
+           这里不重复请求，也不依赖天气卡（W.ok）——原来就是被 !W.ok 卡死成永久占位的。
+
+           ⚠️⚠️ 图表实例只建一次，是这次修 bug 的关键：
+           ECharts 对同一个 DOM 二次 init() 会返回「已存在实例」，而旧实例的 canvas
+           一旦被 innerHTML='' 摘掉，setOption 就画到脱离文档的画布上 = 空白。
+           （旧代码 init() 被调 3 次，每次 innerHTML='' + init + setOption ⇒ 图必空） */
+        var predChart = null;
+        var predArrived = false;
+
+        function predFallback(msg) {
+            var holder = $id('pred-chart');
+            if (!holder) return;
+            if (predChart) { predChart.dispose(); predChart = null; }
+            holder.innerHTML = '<div class="pred-fallback">' + msg + '</div>';
+        }
+
+        function drawForecast(fc) {
+            var holder = $id('pred-chart');
+            if (!holder) return;
+            fc = fc || {};
+            predArrived = true;
+
+            // 元信息行：如实说明这份预测是怎么来的，不做美化
+            var meta = $id('pred-meta');
+            if (meta) {
+                var bits = [];
+                if (fc.method === 'model') {
+                    bits.push('模型：' + (fc.model || 'GBDT/RF') + ' 墒情回归');
+                } else if (fc.method === 'linear_fallback') {
+                    bits.push('⚠ 线性外推兜底（历史不足或模型域外）');
+                } else if (fc.method === 'unavailable') {
+                    bits.push('⚠ 模型不可用' + (fc.error ? '（' + fc.error + '）' : ''));
+                } else {
+                    bits.push('预测方式未知');
+                }
+                if (fc.last_ts) bits.push('最后上报 ' + fc.last_ts);
+                if (fc.stale) bits.push('⚠ 数据已陈旧');
+                if (fc.note) bits.push(fc.note);
+                bits.push('预测范围仅 60 分钟，非 24 小时');
+                meta.textContent = bits.join(' · ');
+            }
+
+            var vNow = fc.soil_now, v30 = fc.soil_30, v60 = fc.soil_60;
+            if (vNow === null || vNow === undefined || isNaN(vNow)) {
+                predFallback('暂无墒情数据');
+                return;
+            }
+            if (v30 === null || v30 === undefined || isNaN(v30)
+                    || v60 === null || v60 === undefined || isNaN(v60)) {
+                predFallback('当前土壤湿度 ' + vNow + '%，暂无 30 / 60 分钟预测<br>（模型未就绪或历史数据不足）');
+                return;
+            }
+            if (typeof window.echarts === 'undefined') {
+                predFallback('图表库未加载，无法绘制预测曲线');
+                return;
+            }
+
+            var vals = [Number(vNow), Number(v30), Number(v60)];
+            var lo = Math.min.apply(null, vals) - 5;
+            var hi = Math.max.apply(null, vals) + 5;
+            if (lo < 0) lo = 0;
+            if (hi > 100) hi = 100;
+            if (hi - lo < 10) {                       // 三点太近时别把图拉平
+                var mid = (hi + lo) / 2;
+                lo = Math.max(0, mid - 5);
+                hi = Math.min(100, mid + 5);
+            }
+
+            // 启动阈值线只在刻度范围内才画，否则 ECharts 会把它裁掉、看着像没生效
+            var threshold = 10;                       // 与 ai.py:SOIL_START / STM32 口径一致
+            var showThreshold = (lo <= threshold && threshold <= hi);
+
+            if (!predChart) {
+                holder.innerHTML = '';
+                predChart = echarts.init(holder);
+            }
+            var series = {
+                name: '土壤湿度',
+                type: 'line',
+                smooth: true,
+                symbol: 'circle',
+                symbolSize: 7,
+                data: vals,
+                lineStyle: { width: 2.5 },
+                areaStyle: { opacity: 0.14 },
+                label: { show: true, formatter: '{c}%', fontSize: 11, color: '#2fa860' }
+            };
+            if (showThreshold) {
+                series.markLine = {
+                    silent: true,
+                    symbol: 'none',
+                    lineStyle: { type: 'dashed', color: '#ef6c00', width: 1.2 },
+                    label: { formatter: '启动阈值 10%', fontSize: 10, color: '#ef6c00', position: 'insideEndTop' },
+                    data: [{ yAxis: threshold }]
+                };
+            }
+            predChart.setOption({
+                color: ['#3dbe7b'],
+                tooltip: { trigger: 'axis' },
+                grid: { left: 8, right: 14, top: 16, bottom: 8, containLabel: true },
+                xAxis: {
+                    type: 'category',
+                    data: ['当前', '+30min', '+60min'],
+                    boundaryGap: false,
+                    axisLine: { lineStyle: { color: '#d6e9de' } },
+                    axisTick: { show: false },
+                    axisLabel: { fontSize: 11, color: '#9ca3af' }
+                },
+                yAxis: {
+                    type: 'value',
+                    min: lo,
+                    max: hi,
+                    name: '%',
+                    splitLine: { lineStyle: { color: '#eef5f1' } },
+                    axisLabel: { fontSize: 10, color: '#9ca3af' }
+                },
+                series: [series]
+            }, true);
+        }
+
+        window.addEventListener('airec', function (e) {
+            drawForecast((e.detail || {}).forecast);
+        });
+
+        // 兜底：无传感器数据时 /api/ai/recommendation 返回 404，main.js 会抛错、不发事件，
+        // 别让卡片永远停在"正在读取…"
+        setTimeout(function () {
+            if (!predArrived) predFallback('暂无墒情数据（等待传感器上报或模型就绪）');
+        }, 8000);
+
+        /* ---------- 智能预警 ---------- */
+        function initAlerts() {
+            var box = $id('alert-list');
+            if (!box) return;
+            var list = [];
+            if (W.temp !== null) {
+                if (W.temp > 32) list.push({ t: '高温预警', d: '当前 ' + W.temp + '°C，超过适宜上限，建议开启通风 / 遮阳降温。', c: 'danger' });
+                else if (W.temp < 5) list.push({ t: '低温预警', d: '当前 ' + W.temp + '°C，注意保温防冻。', c: 'danger' });
+            }
+            if (W.humi !== null && W.humi < 35) list.push({ t: '空气干燥', d: '空气湿度仅 ' + W.humi + '%，建议喷雾加湿。', c: 'warn' });
+            if (W.soil !== null) {
+                if (W.soil < 30) list.push({ t: '土壤干旱', d: '土壤湿度 ' + W.soil + '%，AI 建议立即灌溉。', c: 'danger' });
+                else if (W.soil > 85) list.push({ t: '土壤过湿', d: '土壤湿度 ' + W.soil + '%，注意排水防涝。', c: 'warn' });
+            }
+            if (W.rain !== null && W.rain > 10) list.push({ t: '强降雨预警', d: '未来 24h 降雨 ' + W.rain + 'mm，注意排水。', c: 'warn' });
+            if (!list.length) { box.innerHTML = '<div class="alert-empty">当前各项指标正常，暂无预警</div>'; return; }
+            box.innerHTML = '';
+            for (var i = 0; i < list.length; i++) {
+                (function (a) {
+                    var it = document.createElement('div');
+                    it.className = 'alert-item alert-' + a.c;
+                    it.innerHTML = '<span class="alert-dot"></span><div class="alert-main"><div class="alert-title">' + a.t + '</div><div class="alert-desc">' + a.d + '</div></div><button class="alert-close" title="忽略此条">✕</button>';
+                    it.querySelector('.alert-close').onclick = function () {
+                        it.style.opacity = '0';
+                        it.style.transform = 'translateX(24px)';
+                        setTimeout(function () { it.remove(); }, 260);
+                    };
+                    box.appendChild(it);
+                })(list[i]);
+            }
+        }
+
+        /* ---------- 快捷操作 ---------- */
+        function initQuick() {
+            var btns = document.querySelectorAll('.quick-btn');
+            for (var i = 0; i < btns.length; i++) {
+                (function (btn) {
+                    btn.onclick = function () {
+                        var on = btn.classList.toggle('on');
+                        var st = btn.querySelector('.quick-state');
+                        if (st) st.textContent = on ? '已开启' : '已关闭';
+                    };
+                })(btns[i]);
+            }
+        }
+
+        /* ---------- 小慧对话 ---------- */
+        function aiAnswer(q) {
+            var t = W.temp, h = W.humi, s = W.soil;
+            if (q.indexOf('浇') > -1 || q.indexOf('水') > -1) {
+                if (s !== null) {
+                    if (s < 30) return '当前土壤湿度仅 ' + s + '%，明显偏低，建议现在就去浇水，浇透至土壤湿度回升到 50% 以上。';
+                    if (s > 85) return '土壤湿度 ' + s + '%，水分充足甚至偏多，今天不用浇水，注意排水防涝。';
+                    return '当前土壤湿度 ' + s + '%，处于适宜区间，暂时不用浇水。' + (W.advice ? ' 参考灌溉建议：' + W.advice : '');
+                }
+                if (W.advice) return '参考 AI 灌溉建议：' + W.advice;
+                return '暂时读不到土壤湿度数据。可以稍后刷新，或直接查看上方"灌溉建议"。';
+            }
+            if (q.indexOf('温') > -1) {
+                if (t !== null) {
+                    if (t > 30) return '当前 ' + t + '°C 偏高，建议开启通风或遮阳网降温，傍晚再浇水。';
+                    if (t < 10) return '当前 ' + t + '°C 偏低，注意大棚保温，中午气温回升后再通风。';
+                    return '当前 ' + t + '°C，处于适宜生长区间（20~28°C），不需要额外干预。';
+                }
+                return '暂时读不到温度数据，请确认天气服务已启动。';
+            }
+            if (q.indexOf('病') > -1 || q.indexOf('虫') > -1 || q.indexOf('叶') > -1) {
+                return '建议先在"病害识别"页面上传叶片照片，AI 会自动判断病害类型与置信度；也可以先用"症状速诊"描述症状获取初步建议。';
+            }
+            if (q.indexOf('光') > -1) {
+                return '光照不足时，优先考虑开启补光灯 2~4 小时；如连续阴天，可把补光时段安排在 6:00–10:00 和 16:00–20:00。';
+            }
+            if (q.indexOf('你好') > -1 || q.toLowerCase().indexOf('hi') > -1) {
+                return '嗨，我是小慧，棚里的实时数据我都盯着——要不要浇水、温度合不合适、病虫害怎么防，问一句就出答案。';
+            }
+            return '这个问题我先记下了。当前我可以基于实时环境数据回答：要不要浇水、温度湿度是否合适、病虫害防治等问题，你也可以在下方输入具体症状。';
+        }
+        // AI 头像 = 品牌 LOGO（2026-10-07）；路径与页头 CSS 同款相对写法 ../static/…
+        var AI_AVATAR = '<img src="../static/img/logo.png" alt="">';
+        function addMsg(who, text, silent) {
+            var box = $id('chat-box');
+            if (!box) return;
+            var m = document.createElement('div');
+            m.className = 'chat-msg ' + who;
+            m.innerHTML = '<span class="chat-avatar">' + (who === 'ai' ? AI_AVATAR : '我') + '</span><span class="chat-bubble"></span>';
+            box.appendChild(m);
+            box.scrollTop = box.scrollHeight;
+            m.querySelector('.chat-bubble').textContent = text;
+            if (who === 'ai') {
+                // App 内（WebView）走原生 TTS 播报回复；浏览器里没有这个桥，静默跳过。
+                // 开关由 App 设置页「小慧语音」控制，桥那边每次实时读，网页不存状态。
+                // silent=true 用于开场白之类的自动消息（打开页面不主动出声）。
+                try {
+                    if (!silent && window.AndroidTts && typeof AndroidTts.speak === 'function') {
+                        AndroidTts.speak(text);
+                    }
+                } catch (e) { }
+            }
+        }
+        // 「正在思考……」（2026-10-07）：先出思考气泡，随机 1.5~3 秒后替换成答案。
+        // TTS 在答案出现时才播（思考中不读"正在思考"）。
+        function thinkThenAnswer(text) {
+            var box = $id('chat-box');
+            if (!box) return;
+            var m = document.createElement('div');
+            m.className = 'chat-msg ai thinking';
+            m.innerHTML = '<span class="chat-avatar">' + AI_AVATAR + '</span>'
+                + '<span class="chat-bubble"><span class="think-text">正在思考……</span>'
+                + '<span class="think-dots"><i></i><i></i><i></i></span></span>';
+            box.appendChild(m);
+            box.scrollTop = box.scrollHeight;
+            var delay = 1500 + Math.round(Math.random() * 1500);
+            setTimeout(function () {
+                if (!m.parentNode) return;
+                m.className = 'chat-msg ai';
+                m.querySelector('.chat-bubble').textContent = text;
+                box.scrollTop = box.scrollHeight;
+                try {
+                    if (window.AndroidTts && typeof AndroidTts.speak === 'function') {
+                        AndroidTts.speak(text);
+                    }
+                } catch (e) { }
+            }, delay);
+        }
+        function ask(q) {
+            q = (q || '').replace(/^\s+|\s+$/g, '');
+            if (!q) return;
+            addMsg('user', q);
+            thinkThenAnswer(aiAnswer(q));
+        }
+        function initChat() {
+            var input = $id('chat-input'), send = $id('chat-send');
+            function doSend() { var v = input.value; input.value = ''; ask(v); }
+            if (send) send.onclick = doSend;
+            if (input) {
+                input.onkeydown = function (e) { if (e.key === 'Enter') doSend(); };
+            }
+            initVoice();
+        }
+
+        /* ---------- 语音输入（2026-10-07）----------
+           原生桥 AndroidStt（VoiceBridge）→ 识别结果回填输入框，**不自动发送**。
+           电脑浏览器里没有这个桥，麦克风按钮不显示。 */
+        var voiceHintTimer = null;
+
+        function voiceHintText(code) {
+            if (code === 'permission') return '需要麦克风权限：请在系统设置里允许本应用录音';
+            if (code === 'audio') return '麦克风被占用或不可用，稍后再试';
+            if (code === 'tooshort') return '说话时间太短，说完再点一下麦克风';
+            if (code === 'nomatch') return '没听清，再说一次试试';
+            if (code === 'upload') return '连不上服务器，语音识别失败了';
+            if (code === 'unconfigured') return '服务器还没装语音识别模型，先打字吧';
+            return '语音输入失败，换打字吧';
+        }
+
+        function showVoiceHint(msg) {
+            var el = $id('chat-voice-hint');
+            if (!el) return;
+            el.textContent = msg;
+            el.hidden = false;
+            if (voiceHintTimer) { clearTimeout(voiceHintTimer); voiceHintTimer = null; }
+        }
+
+        function hideVoiceHintSoon(delay) {
+            var el = $id('chat-voice-hint');
+            if (!el) return;
+            if (voiceHintTimer) clearTimeout(voiceHintTimer);
+            voiceHintTimer = setTimeout(function () { el.hidden = true; voiceHintTimer = null; }, delay);
+        }
+
+        // 桥回调必须挂在 window 上（VoiceBridge 用 evaluateJavascript 调它们）
+        window.onVoiceResult = function (text, isFinal) {
+            var input = $id('chat-input');
+            if (!input || !text) return;
+            input.value = text;              // 部分结果实时上屏，最终结果同样只上屏、不发送
+            if (isFinal) {
+                try { input.focus(); input.setSelectionRange(text.length, text.length); } catch (e) { }
+                hideVoiceHintSoon(800);
+            }
+        };
+        window.onVoiceError = function (code, raw) {
+            // raw = 系统原始错误码（0 表示本地判定）；排查"红→灭"时肉眼能直接读到。
+            var msg = voiceHintText(code) + (raw ? '（E' + raw + '）' : '');
+            showVoiceHint(msg);
+            hideVoiceHintSoon(8000);   // 留久一点，够看清末尾那个编号
+        };
+        // 内嵌识别这条路走不通、桥改用系统语音界面时的通知：
+        // 不说一声的话，用户会以为"点麦克风怎么跳出一个陌生窗口"。
+        window.onVoiceFallback = function () {
+            showVoiceHint('改用系统语音输入，对着弹出的窗口说话');
+            hideVoiceHintSoon(8000);
+        };
+        // 「正在听」的显示/收起：点麦克风那一刻就调用一次（不等桥回调，否则要等
+        // 识别器新建+服务就绪，用户会觉得"点了没反应"）；之后桥的 onVoiceState 会再同步。
+        function voiceListeningUI(on) {
+            var mic = $id('chat-mic');
+            if (mic) mic.classList.toggle('listening', !!on);
+            if (on) {
+                showVoiceHint('正在听……说完点一下麦克风结束');
+            } else {
+                hideVoiceHintSoon(1200);
+            }
+        }
+        window.onVoiceState = function (listening) {
+            voiceListeningUI(listening);
+        };
+        // 录音阶段（桥透传）：recording=正在录｜uploading=上传识别中｜done=出结果。
+        // 这条路是"录完才识别"（录音在本机、识别在 PC），所以提示条必须说清在哪一步，
+        // 否则用户看到"正在听"不动了会以为卡死。
+        window.onVoicePhase = function (phase) {
+            if (phase === 'recording') {
+                showVoiceHint('正在听……说完点一下麦克风结束');
+            } else if (phase === 'uploading') {
+                showVoiceHint('识别中……');
+            } else if (phase === 'done') {
+                hideVoiceHintSoon(1500);
+            }
+        };
+
+        function initVoice() {
+            var mic = $id('chat-mic');
+            if (!mic) return;
+            // 判据只看"App 里有没有这条桥"，不再把 isAvailable() 当显示条件：
+            // 本机识别服务探测不到时也让按钮出现，点一下由桥回一句提示。
+            // 否则整颗按钮被藏掉，看起来就跟"这功能压根没做入口"一样（2026-10-07 踩过）。
+            var bridged = false, usable = false;
+            try {
+                bridged = !!(window.AndroidStt && typeof AndroidStt.start === 'function');
+                if (bridged) usable = !!AndroidStt.isAvailable();
+            } catch (e) { bridged = false; usable = false; }
+            if (!bridged) return;            // 电脑浏览器：没有桥，按钮保持 hidden
+            mic.hidden = false;
+            if (!usable) mic.classList.add('unavailable');   // 弱化显示：能看见，但点不了
+            mic.onclick = function () {
+                if (!usable) { showVoiceHint(voiceHintText('unavailable')); return; }
+                voiceListeningUI(true);   // 先显示"正在听"，桥那边就绪后会再确认一次
+                try { AndroidStt.start(); } catch (e) { showVoiceHint(voiceHintText('unknown')); }
+            };
+        }
+
+        /* ---------- 时钟 ---------- */
+        function tickClock() {
+            var el = $id('header-clock');
+            if (!el) return;
+            var d = new Date();
+            function p(n) { return (n < 10 ? '0' : '') + n; }
+            el.textContent = p(d.getHours()) + ':' + p(d.getMinutes());
+        }
+
+        /* ---------- 启动 ---------- */
+        // refresh() 只"重算展示"，绝不重建 ECharts 实例、也不重复绑定事件。
+        // （旧代码是把整个 init() 又跑两遍，包含 initPrediction 的 innerHTML='' + init，
+        //   于是图被自己刷成空白——这是"AI 预测一直空"的真正原因，别再写回来。）
+        function refresh() {
+            parseWeather();
+            initScore();
+            initAlerts();
+        }
+
+        var firstRun = true;
+        function boot() {
+            refresh();
+            initQuick();
+            initChat();
+            if (firstRun) {
+                firstRun = false;
+                tickClock();
+                setInterval(tickClock, 30000);
+                setTimeout(function () {
+                    addMsg('ai', '嗨，我是小慧，温湿度、光照、水位我都盯着呢。要不要浇水、温度合不合适、叶子出状况怎么办——问一句就有答案。', true);
+                }, 700);
+            }
+            // 环境数据 30 秒轮询刷新
+            setInterval(refresh, 30000);
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', boot);
+        } else {
+            boot();
+        }
+    })();
+    </script>
 </body>
 </html>
-

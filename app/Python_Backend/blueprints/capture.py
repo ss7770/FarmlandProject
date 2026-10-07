@@ -2,7 +2,8 @@ import os
 from flask import Blueprint, request, jsonify, send_from_directory
 from datetime import datetime
 from utils.db import get_db_connection, insert_disease_record
-# 识别内核与三档阈值集中放在 utils/inference.py，与 D200 摄像头链路共用
+# 识别内核与三档阈值集中放在 utils/inference.py，
+# 服务端共用入口：APP 手动上传 / 网页上传（K230 走独立的 /api/edge/disease 结论回传）
 from utils.inference import (try_inference, classify_verdict, describe_result,
                              CONFIRMED_THRESHOLD, SUSPECTED_THRESHOLD)
 
@@ -11,6 +12,10 @@ UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file
 
 # 兼容旧调用名（历史代码/测试脚本用过 _try_inference）
 _try_inference = try_inference
+
+# 记录来源标签。原值 'ESP32-CAM' 随该硬件淘汰一并泛化（2026-10-01）：
+# 这条链路现在只服务"人在网页/APP 上传照片"，不再绑定任何具体摄像头型号。
+UPLOAD_LOCATION = 'Web 上传'
 
 
 def _ensure_columns():
@@ -41,15 +46,28 @@ def upload_image():
     if result:
         resp = {'status': 'ok', 'saved': name}
         resp.update(describe_result(result))
-        if resp['verdict'] == 'confirmed':
+        # 拍到就入库（2026-10-01 口径调整）：
+        # 原来只有确诊（≥75%）才写记录，疑似/拒识只在响应里回一句话，
+        # 结果是"用户明明上传了图，记录里却什么都没有"。
+        # 现在一律写记录，未确诊的由后台 TTL（config.UNCONFIRMED_TTL_MIN）到期清理。
+        diagnosed = resp['verdict'] == 'confirmed'
+        try:
             insert_disease_record(result['disease'], result['confidence'],
-                                  location='ESP32-CAM', image_path='uploads/' + name,
+                                  location=UPLOAD_LOCATION, image_path='uploads/' + name,
                                   source='auto')
+        except Exception as e:
+            resp['msg'] = 'image saved, but db insert failed: %s' % e
+            return jsonify(resp)
+
+        resp['diagnosed'] = diagnosed
+        resp['display_name'] = result['disease'] if diagnosed else '置信率不足'
+        if diagnosed:
+            resp['msg'] = 'already recorded'
         else:
-            # 疑似 / 拒识：不写记录、不触发 APP 通知，只回结论供 APP 提示重拍
-            resp['msg'] = ('%s (%.1f%%, thresholds: suspected>=%.0f, confirmed>=%.0f, not recorded)'
-                           % (resp['verdict'], result['confidence'],
-                              SUSPECTED_THRESHOLD, CONFIRMED_THRESHOLD))
+            # 不诊断：只说置信率不足，不给病名（病名只在服务端保留，供复盘）
+            resp['msg'] = ('confidence %.1f%% below confirmed threshold %.0f%%, '
+                           'recorded without diagnosis (auto-cleaned later)'
+                           % (result['confidence'], CONFIRMED_THRESHOLD))
         return jsonify(resp)
     return jsonify({'status': 'ok', 'saved': name, 'msg': 'image saved (inference unavailable, see server console)'})
 
@@ -64,8 +82,8 @@ def latest_upload():
              if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
     if not files:
         return jsonify({'status': 'empty'})
-    # 按修改时间排序（不是文件名字典序）：D200 巡检帧 d200_*.jpg 与手动上传 cap_*.jpg
-    # 前缀不同，字典序会让"最近拍摄"取错图
+    # 按修改时间排序（不是文件名字典序）：uploads 里既有手动上传的 cap_*.jpg，
+    # 也有历史遗留的 d200_*.jpg 巡检帧，前缀不同，字典序会让"最近拍摄"取错图
     files.sort(key=lambda f: os.path.getmtime(os.path.join(UPLOAD_DIR, f)), reverse=True)
     name = files[0]
 

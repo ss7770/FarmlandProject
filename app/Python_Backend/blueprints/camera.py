@@ -144,7 +144,7 @@ def _inspect_loop():
 def init_camera():
     """惰性启动摄像头拉流线程 + 自动巡检线程（幂等）。配置关闭时直接返回。"""
     global _thread
-    if not getattr(config, 'D200_ENABLED', True):
+    if not _is_enabled():
         return False
     cam = get_cam()
     cam.start()
@@ -154,9 +154,45 @@ def init_camera():
     return True
 
 
+def _is_enabled():
+    return bool(getattr(config, 'D200_ENABLED', True))
+
+
+def _retired_payload():
+    """D200 已淘汰后的统一响应（2026-10-01 起）。
+
+    保留这套接口是为了**不破坏前端与 APP 的既有调用**：它们仍能拿到结构合法的响应，
+    只是内容变成"未启用 + 替代方案指向"，不会报 404/500，也不会显示假的"在线"。
+    """
+    return {
+        'enabled': False,
+        'retired': True,
+        'host': getattr(config, 'D200_HOST', ''),
+        'online': False,
+        'connected': False,
+        'worker_running': False,
+        'frame_seq': 0,
+        'frame_bytes': 0,
+        'last_frame_age_sec': None,
+        'last_error': '',
+        'mode': 'disabled',
+        'stalled': False,
+        'still_sec': None,
+        'content_hash': '',
+        'replacement': 'K230（边缘推理，结论经 /api/edge/disease 回传）',
+        'msg': 'D200 拉流已淘汰（2026-10-01）；图像识别改由 K230 在设备端完成，只回传结论',
+    }
+
+
 # ================= 接口 =================
 @camera_bp.route('/status')
 def camera_status():
+    if not _is_enabled():
+        with _lock:
+            st = _retired_payload()
+            st['inspect'] = {'enabled': False, 'interval': _inspect_cfg['interval']}
+            st['state'] = {k: v for k, v in _state.items()}
+        return jsonify({'status': 'ok', 'camera': st})
     init_camera()          # 兜底：任何一次访问都保证后台线程在跑
     cam = get_cam()
     st = cam.status()
@@ -168,6 +204,9 @@ def camera_status():
 
 @camera_bp.route('/snapshot')
 def camera_snapshot():
+    if not _is_enabled():
+        return jsonify({'status': 'error', 'msg': 'camera retired',
+                        'detail': _retired_payload()['msg']}), 503
     init_camera()
     cam = get_cam()
     jpg = cam.latest(timeout=4, max_age=FRAME_MAX_AGE)
@@ -186,6 +225,8 @@ def camera_stream():
 
     每帧都来自常驻连接的内存缓存，不会额外连 D200。
     """
+    if not _is_enabled():
+        return Response('', status=204)     # 淘汰后不再推流，<img> 自然空着
     init_camera()
 
     def gen():
@@ -229,6 +270,10 @@ def camera_latest():
 @camera_bp.route('/capture', methods=['POST'])
 def camera_capture():
     """手动抓拍识别（看板按钮 / APP 调用）"""
+    if not _is_enabled():
+        return jsonify({'status': 'retired', 'trigger': 'manual',
+                        'msg': 'camera retired',
+                        'detail': _retired_payload()['msg']}), 503
     init_camera()
     body = request.get_json(silent=True) or {}
     res = run_inspection(trigger=body.get('trigger', 'manual'))
@@ -242,6 +287,10 @@ def camera_inspect_config():
         with _lock:
             return jsonify({'status': 'ok', 'inspect': dict(_inspect_cfg),
                             'state': {k: v for k, v in _state.items()}})
+
+    if not _is_enabled():
+        return jsonify({'status': 'retired', 'inspect': dict(_inspect_cfg),
+                        'msg': _retired_payload()['msg']}), 200
 
     body = request.get_json(silent=True) or {}
     if 'enabled' in body:

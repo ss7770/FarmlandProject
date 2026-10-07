@@ -1,12 +1,29 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>  
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>错误页面</title>
+    <script>if (navigator.userAgent.indexOf("; wv)") > -1) document.documentElement.classList.add("in-webview");</script>
+    <title>页面未找到 · 智慧灌溉</title>
+    <link rel="stylesheet" href="../static/css/style.css">
 </head>
-<body>
-    <h1>错误</h1>
-    <p>页面未找到</p>
+<body class="err-page">
+    <div class="container">
+        <div class="err-wrap">
+            <div class="err-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            </div>
+            <div class="err-code">404</div>
+            <div class="err-title">页面未找到</div>
+            <div class="err-msg">你访问的页面可能已被移动、删除，或者地址输入有误。</div>
+            <div class="err-btns">
+                <button class="err-btn" onclick="history.back()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+                    返回上一页
+                </button>
+                <a class="err-btn ghost" href="/">回到数据总览</a>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

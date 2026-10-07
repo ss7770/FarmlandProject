@@ -1,5 +1,59 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:height="24dp" android:tint="#4CAF50" android:viewportHeight="24" android:viewportWidth="24" android:width="24dp">
-      
-    <path android:fillColor="@android:color/white" android:pathData="M15,13L15,5c0,-1.66 -1.34,-3 -3,-3S9,3.34 9,5v8c-1.21,0.91 -2,2.37 -2,4 0,2.76 2.24,5 5,5s5,-2.24 5,-5c0,-1.63 -0.79,-3.09 -2,-4zM11,5c0,-0.55 0.45,-1 1,-1s1,0.45 1,1h-1v1h1v2h-1v1h1v2h-2L11,5z"/>
-    
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 温度图标（2026-10-07 参照用户提供的 3D 球体参考图绘制，与 ic_soil/ic_water 同风格）：
+     红色温度球 + 白色温度计剪影（圆头粗描边拼胶囊+球泡）+ 红色内芯 + 三道白色刻度线。
+     ⚠️ 不用 VectorDrawable 渐变（要 API 24，工程 minSdk 23），
+        立体感用「深色边球 + 上移浅色主球」两层伪造。整颗球自带底色，
+        使用处不要再垫 bg_badge_* 白圆徽章，也不要加 tint。
+        红色取温度卡同族色（colorBadgeTempEnd #F0553C）。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="38dp"
+    android:height="38dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- 球底（深红，露出下缘作暗边） -->
+    <path
+        android:fillColor="#CE3A2B"
+        android:pathData="M12,1a11,11 0 1,0 0,22a11,11 0 1,0 0,-22z" />
+    <!-- 主球（浅一档，整体上移 0.8，底部留出深色暗边 = 球体感） -->
+    <path
+        android:fillColor="#F0503C"
+        android:pathData="M12,1.9a10.1,10.1 0 1,0 0,20.2a10.1,10.1 0 1,0 0,-20.2z" />
+
+    <!-- 温度计剪影（白）：胶囊杆 + 球泡，两块白色重叠成整体 -->
+    <path
+        android:pathData="M12,6.5 L12,15.4"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.6"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,15.4m-4.2,0a4.2,4.2 0 1,0 8.4,0a4.2,4.2 0 1,0 -8.4,0z" />
+
+    <!-- 温度计内芯（红，露出球底色）：短杆 + 球泡芯 -->
+    <path
+        android:pathData="M12,9.6 L12,14.9"
+        android:strokeColor="#F0503C"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#F0503C"
+        android:pathData="M12,15.4m-2,0a2,2 0 1,0 4,0a2,2 0 1,0 -4,0z" />
+
+    <!-- 三道白色刻度线（右侧，圆头短横） -->
+    <path
+        android:pathData="M15.7,8.2 L17.9,8.2"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.1"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M15.7,10.6 L17.9,10.6"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.1"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M15.7,13 L17.9,13"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.1"
+        android:strokeLineCap="round" />
 </vector>
